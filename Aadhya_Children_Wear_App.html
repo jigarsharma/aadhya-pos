@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Aadhya Children Wear App</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#7A6A9C; --paper:#FBF7FA; --card:#FFFFFF; --line:#F0E1EC;
+    --stamp-red:#EE7DA0; --seal-green:#5FC7AE; --accent-blue:#7FC2E8; --accent-yellow:#FFD988;
+    --text-dark:#463C58; --text-mid:#8a7a9e; --shadow:0 3px 14px rgba(122,106,156,0.10);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{margin:0; font-family:'Nunito',-apple-system,'Segoe UI',Roboto,sans-serif; background:var(--paper); color:var(--text-dark); padding-bottom:90px;}
+
+  /* ============ TOP NAV ============ */
+  .topbar{
+    position:sticky; top:0; z-index:500; background:#fff; border-bottom:1px solid var(--line);
+    padding:10px 12px; box-shadow:0 2px 10px rgba(122,106,156,0.06);
+  }
+  .topbar-row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .brand{display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0;}
+  .brand-name{font-family:'Baloo 2',cursive; font-size:15px; font-weight:700; color:var(--ink); line-height:1.15; white-space:nowrap;}
+  .brand-chip{font-size:9px; font-weight:700; background:var(--stamp-red); color:#fff; padding:3px 8px; border-radius:20px; white-space:nowrap; flex-shrink:0;}
+  .btn-icon{
+    width:38px; height:38px; border-radius:12px; border:1.5px solid var(--line); background:#fff;
+    font-size:18px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .tabbar{display:flex; gap:6px; margin-top:10px;}
+  .tabbtn{
+    flex:1; padding:10px 4px; font-family:'Baloo 2',cursive; font-size:13px; font-weight:600;
+    border-radius:12px; border:none; background:#F5EEF4; color:var(--text-mid); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:5px; white-space:nowrap;
+  }
+  .tabbtn.active[data-tab="sales"]{background:var(--stamp-red); color:#fff;}
+  .tabbtn.active[data-tab="dashboard"]{background:var(--accent-blue); color:#fff;}
+  .tabbtn.active[data-tab="purchase"]{background:var(--seal-green); color:#fff;}
+
+  .page{display:none; padding:12px;}
+  .page.active{display:block;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:var(--shadow);}
+  label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-mid); font-weight:700; margin-bottom:4px; margin-top:10px;}
+  label:first-child{margin-top:0;}
+  input, select{width:100%; padding:11px; font-size:14px; border:1.5px solid var(--line); border-radius:10px; background:#fffdfe; color:var(--text-dark); font-family:'Nunito',sans-serif;}
+  input:focus, select:focus{outline:none; border-color:var(--ink);}
+  button.btn{padding:13px 18px; background:var(--ink); color:#fff; border:none; border-radius:12px; font-family:'Baloo 2',cursive; font-weight:600; font-size:15px; cursor:pointer; box-shadow:0 3px 10px rgba(122,106,156,0.22);}
+  button.btn.secondary{background:transparent; color:var(--ink); border:1.5px solid var(--ink); box-shadow:none;}
+  button.btn.small{padding:6px 10px; font-size:12px; border-radius:8px;}
+  button.btn.danger{background:var(--stamp-red);}
+  button.btn:disabled{opacity:0.4;}
+  .row{display:flex; gap:10px; flex-wrap:wrap;}
+  .row > div{flex:1; min-width:120px;}
+  .status-msg{margin-top:10px; padding:10px 12px; border-radius:10px; font-size:13px; font-weight:700;}
+  .status-msg.ok{background:#E7F7F1; color:#3B9C82;}
+  .status-msg.err{background:#FDECEF; color:#D45C7D;}
+  .config-warning{background:#FDECEF; border:1px solid var(--stamp-red); border-radius:12px; padding:12px; font-size:13px; margin:12px;}
+
+  /* Toasts */
+  #toastContainer{position:fixed; top:12px; left:12px; right:12px; z-index:9999; display:flex; flex-direction:column; gap:8px; pointer-events:none;}
+  .toast{padding:13px 18px; border-radius:14px; font-size:14px; font-weight:700; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,0.18); animation:toastIn 0.22s ease-out; color:#fff;}
+  .toast.detect{background:#5A4E72;}
+  .toast.success{background:var(--seal-green);}
+  .toast.error{background:var(--stamp-red);}
+  @keyframes toastIn{ from{opacity:0; transform:translateY(-12px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes toastOut{ from{opacity:1;} to{opacity:0;} }
+
+  /* ============ SCAN AREA ============ */
+  .scan-card{background:linear-gradient(135deg, #FDF1F6, #FEF9F0); border:1px solid var(--line); border-radius:18px; padding:14px; margin-bottom:12px;}
+  .scan-row{display:flex; gap:8px; align-items:stretch;}
+  #sc_manualEntry{flex:1; padding:14px; font-size:16px; text-align:center; border:2px solid var(--ink); border-radius:12px; font-weight:700; background:#fff;}
+  .cam-toggle-btn{
+    width:52px; flex-shrink:0; border-radius:12px; border:2px solid var(--ink); background:var(--ink); color:#fff;
+    font-size:20px; cursor:pointer;
+  }
+  #sc_cameraStatus{font-size:12px; color:var(--text-mid); margin:8px 0 6px; text-align:center;}
+  #sc_reader{width:100%; border-radius:14px; overflow:hidden; margin-top:8px; border:1px solid var(--line); min-height:0;}
+  #sc_torchWrap{display:none; margin-top:8px;}
+  #sc_btnTorch{width:100%; padding:9px; border-radius:10px; border:none; background:#F5EEF4; color:var(--ink); font-weight:700; font-size:13px;}
+
+  .quick-add-banner{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-mid); margin-top:8px; justify-content:center;}
+  .quick-add-banner b{color:var(--ink);}
+
+  .product-info{font-size:14px; line-height:1.6;}
+  .product-info b{font-size:16px; color:var(--ink);}
+
+  .qty-stepper{display:flex; align-items:stretch; gap:0;}
+  .qty-stepper input{text-align:center; border-radius:0; border-left:none; border-right:none; flex:1;}
+  .qty-btn{width:42px; flex-shrink:0; font-size:20px; font-weight:700; background:var(--ink); color:#fff; border:1px solid var(--ink); cursor:pointer;}
+  .qty-btn:first-child{border-radius:10px 0 0 10px;}
+  .qty-btn:last-child{border-radius:0 10px 10px 0;}
+
+  /* ============ STICKY CART BAR ============ */
+  .cart-bar{
+    position:fixed; left:12px; right:12px; bottom:12px; z-index:600;
+    background:linear-gradient(135deg, var(--ink), #9C8CC0); color:#fff; border-radius:16px;
+    padding:12px 16px; display:flex; align-items:center; justify-content:space-between;
+    box-shadow:0 8px 24px rgba(122,106,156,0.35); cursor:pointer;
+  }
+  .cart-bar-info{display:flex; flex-direction:column;}
+  .cart-bar-count{font-size:11px; opacity:0.85; font-weight:600;}
+  .cart-bar-total{font-size:19px; font-weight:800; font-family:'Baloo 2',cursive;}
+  .cart-bar-cta{background:#fff; color:var(--ink); padding:9px 16px; border-radius:12px; font-weight:700; font-size:13px; font-family:'Baloo 2',cursive;}
+
+  /* ============ CART OVERLAY ============ */
+  .overlay{position:fixed; inset:0; background:var(--paper); z-index:800; display:none; overflow-y:auto;}
+  .overlay.active{display:block;}
+  .overlay-header{
+    position:sticky; top:0; background:#fff; border-bottom:1px solid var(--line); padding:14px 16px;
+    display:flex; align-items:center; gap:10px; z-index:2;
+  }
+  .overlay-header h2{margin:0; font-family:'Baloo 2',cursive; font-size:18px; flex:1;}
+  .overlay-body{padding:12px; padding-bottom:160px;}
+
+  .bill-item{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px;
+  }
+  .bill-item-name{font-weight:700; font-size:14px;}
+  .bill-item-meta{font-size:12px; color:var(--text-mid); margin-top:2px;}
+  .bill-item-amount{font-weight:800; font-size:15px; color:var(--ink); text-align:right;}
+  .bill-item-remove{background:none; border:none; color:var(--stamp-red); font-size:20px; cursor:pointer; padding:0 4px;}
+  .bill-item-qty{display:flex; align-items:center; gap:4px; margin-top:6px;}
+  .bill-item-qty button{width:26px; height:26px; border-radius:8px; border:1px solid var(--line); background:#F5EEF4; font-weight:700; font-size:14px; cursor:pointer;}
+  .bill-item-qty span{min-width:22px; text-align:center; font-weight:700; font-size:13px;}
+  .bill-empty{text-align:center; padding:40px 20px; color:#b3a6c4; font-size:14px;}
+  .bill-empty .big-emoji{font-size:40px; display:block; margin-bottom:10px;}
+
+  .discount-box{background:#FFF7E3; border:1px solid #F0D699; border-radius:14px; padding:14px; margin-top:6px;}
+  .discount-box input:disabled{background:#F3EDE0; color:#666;}
+  #sc_discountBadge{margin-top:8px; font-size:13px; font-weight:700;}
+  #sc_discountBadge.discount-applied{color:var(--stamp-red);}
+  #sc_discountBadge.discount-extra{color:var(--seal-green);}
+  .round-off-row{display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .round-off-label{font-size:12px; font-weight:700; color:var(--text-mid);}
+  .round-btn{padding:6px 12px; font-size:12px; font-weight:700; background:#fff; border:1.5px solid var(--ink); border-radius:20px; color:var(--ink); cursor:pointer;}
+  .round-btn:hover{background:var(--ink); color:#fff;}
+
+  .payment-method-row{display:flex; gap:8px;}
+  .pm-btn{flex:1; padding:11px 4px; font-size:13px; font-weight:700; background:#fff; border:1.5px solid var(--line); border-radius:12px; color:var(--text-mid); cursor:pointer;}
+  .pm-btn.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+
+  .overlay-footer{
+    position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line);
+    padding:12px 16px; box-shadow:0 -6px 18px rgba(122,106,156,0.12); z-index:3;
+  }
+  .overlay-footer .row{margin:0;}
+
+  /* ============ MORE MENU ============ */
+  .more-panel{position:fixed; inset:0; background:rgba(70,60,88,0.35); z-index:900; display:none;}
+  .more-panel.active{display:block;}
+  .more-sheet{
+    position:absolute; top:0; right:0; bottom:0; width:78%; max-width:300px; background:#fff;
+    padding:16px; box-shadow:-8px 0 24px rgba(0,0,0,0.15); display:flex; flex-direction:column; gap:6px;
+  }
+  .more-sheet h3{font-family:'Baloo 2',cursive; margin:4px 0 10px;}
+  .more-link{
+    display:flex; align-items:center; gap:12px; padding:13px 12px; border-radius:12px; border:none;
+    background:#FAF6F9; color:var(--text-dark); font-size:14px; font-weight:700; cursor:pointer; text-align:left;
+  }
+  .more-link.active{background:var(--ink); color:#fff;}
+
+  /* ============ SETTINGS ============ */
+  .toggle-row{display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--line);}
+  .toggle-row:last-child{border-bottom:none;}
+  .toggle-row-text b{display:block; font-size:14px;}
+  .toggle-row-text span{font-size:12px; color:var(--text-mid);}
+  .switch{position:relative; width:46px; height:26px; flex-shrink:0;}
+  .switch input{opacity:0; width:0; height:0;}
+  .slider{position:absolute; inset:0; background:#e2d8e8; border-radius:20px; cursor:pointer; transition:0.2s;}
+  .slider::before{content:""; position:absolute; width:20px; height:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+  .switch input:checked + .slider{background:var(--seal-green);}
+  .switch input:checked + .slider::before{transform:translateX(20px);}
+
+  /* ============ PRINT TAB ============ */
+  .quick-copies{display:flex; gap:6px; margin-top:4px;}
+  .quick-copies button{flex:1; padding:8px; font-size:12px; background:#F5EEF4; color:var(--ink); border:none; border-radius:8px;}
+  .quick-copies button.active{background:var(--ink); color:#fff;}
+  .queue-item{display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin-bottom:6px; font-size:13px;}
+  .queue-total{font-weight:700; margin-top:8px; font-size:14px;}
+  .queue-total.over{color:var(--stamp-red);}
+  #lp_labelSheet{display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; background:#fff; padding:10px; margin-top:12px;}
+  .tag{border:1px solid #ccc; border-radius:10px; padding:10px 10px 8px; position:relative; background:#fff; break-inside:avoid;}
+  .tag .hole{position:absolute; top:8px; right:8px; width:12px; height:12px; border-radius:50%; border:1px solid #bbb; background:#fff;}
+  .tag .name{font-size:11px; font-weight:700; margin-bottom:4px; padding-right:16px;}
+  .tag .name .size-part{font-weight:500; color:#666; font-size:10px;}
+  .tag svg{width:100%; height:auto; display:block; min-height:35px;}
+  .tag .code{font-size:15px; color:#000; margin-top:4px; text-align:center; letter-spacing:3px; font-weight:700; font-family:'Courier New',monospace;}
+  .tag .bottom-row{display:flex; justify-content:space-between; align-items:flex-end; margin-top:5px;}
+  .tag .mrp{font-size:16px; font-weight:700;}
+  .tag .tax{font-size:7px; color:#888; text-align:right; line-height:1.25; max-width:65px;}
+  .page-break{grid-column:1 / -1; display:flex; align-items:center; gap:10px; color:var(--stamp-red); font-size:11px; font-weight:700; margin:6px 0;}
+  .page-break::before, .page-break::after{content:""; flex:1; border-top:2px dashed var(--stamp-red);}
+
+  @media print{
+    body{padding:0; background:#fff;}
+    .topbar, .page:not(#page-print), .cart-bar{display:none !important;}
+    #lp_labelSheet{display:grid !important; gap:2mm; padding:5mm;}
+    .tag{border:none;}
+    .tag.testgrid{border:1px dashed #999 !important;}
+    .page-break{break-after:page; border:none;}
+    .page-break::before, .page-break::after{display:none;}
+  }
+  body.precut{ --margin-top:12.5mm; --margin-left:7mm; --gap-col:2mm; --gap-row:0mm; }
+  body.precut #lp_labelSheet{
+    grid-template-columns:repeat(3, 64mm); column-gap:var(--gap-col); row-gap:var(--gap-row);
+    justify-content:start; padding:var(--margin-top) 0 0 var(--margin-left) !important;
+  }
+  body.precut .tag{width:64mm; height:34mm; border-radius:0; padding:2.5mm 3.5mm; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between;}
+  body.precut .tag .hole{display:none;}
+  body.precut .tag .name{font-size:10px; margin-bottom:1mm;}
+  body.precut .tag .name .size-part{font-size:9px;}
+  body.precut .tag svg{min-height:26px; max-height:11mm;}
+  body.precut .tag .code{font-size:12px; letter-spacing:2px; margin-top:1mm;}
+  body.precut .tag .bottom-row{margin-top:1.5mm;}
+  body.precut .tag .mrp{font-size:14px;}
+  body.precut .tag .tax{font-size:6.5px; max-width:55px;}
+
+  /* ============ BILL CONFIRMATION (on-screen, no printing) ============ */
+  .receipt-total{display:flex; justify-content:space-between; font-weight:700; font-size:15px; margin-top:10px; border-top:2px solid var(--line); padding-top:6px;}
+  .bill-row{display:flex; justify-content:space-between; padding:6px 0; font-size:13px;}
+
+  /* ============ DASHBOARD ============ */
+  .dash-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+  .dash-card{border-radius:16px; padding:16px; color:#fff;}
+  .dash-pink{background:linear-gradient(135deg, #F5A6C2, #F8C6D8);}
+  .dash-teal{background:linear-gradient(135deg, #7FD9C4, #A6E8D6);}
+  .dash-blue{background:linear-gradient(135deg, #9AD3F0, #C3E7F8);}
+  .dash-yellow{background:linear-gradient(135deg, #FFD988, #FFE7B3); color:var(--text-dark);}
+  .dash-label{font-size:11px; text-transform:uppercase; letter-spacing:0.05em; opacity:0.9; font-weight:700;}
+  .dash-value{font-size:25px; font-weight:800; margin-top:4px; font-family:'Baloo 2',cursive;}
+  .dash-sub{font-size:11px; opacity:0.85; margin-top:2px;}
+  .top-item-row{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px dotted var(--line); font-size:13px;}
+  .top-item-row .rank{display:inline-block; width:20px; font-weight:700; color:var(--stamp-red);}
+
+  /* ============ NAME SEARCH (camera-free fallback) ============ */
+  .name-results{margin-top:8px; max-height:280px; overflow-y:auto;}
+  .name-result-item{
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+    background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:6px; cursor:pointer;
+  }
+  .name-result-item:active{background:#F5EEF4;}
+  .name-result-item.out-of-stock{opacity:0.5;}
+  .nr-name{font-weight:700; font-size:13.5px;}
+  .nr-meta{font-size:11px; color:var(--text-mid); margin-top:2px;}
+  .nr-right{text-align:right; font-size:12px; font-weight:700; color:var(--ink); flex-shrink:0;}
+
+  /* ============ SUB-TABS (used inside Purchase) ============ */
+  .sub-tabbar{display:flex; gap:6px; margin-bottom:12px;}
+  .subtab{
+    flex:1; padding:9px 4px; font-family:'Baloo 2',cursive; font-size:12.5px; font-weight:600;
+    border-radius:10px; border:1.5px solid var(--line); background:#fff; color:var(--text-mid); cursor:pointer;
+  }
+  .subtab.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .subpage{display:none;}
+  .subpage.active{display:block;}
+
+  /* ============ DASHBOARD — period switcher ============ */
+  .period-tabbar{display:flex; gap:6px; margin-bottom:10px;}
+  .period-tab{
+    flex:1; padding:9px 4px; font-family:'Baloo 2',cursive; font-size:12.5px; font-weight:600;
+    border-radius:10px; border:1.5px solid var(--accent-blue); background:#fff; color:var(--ink); cursor:pointer;
+  }
+  .period-tab.active{background:var(--accent-blue); color:#fff;}
+  .dash-grid3{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+  .dash-purple{background:linear-gradient(135deg, #B7A6E8, #D4C6F5);}
+  .bill-row-card{
+    background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px;
+    display:flex; justify-content:space-between; align-items:center; font-size:13px; cursor:pointer;
+  }
+  .bill-row-card:active{background:#F5EEF4;}
+  .bill-row-card .bill-no{font-weight:800; color:var(--ink); font-family:'Courier New',monospace; font-size:12px;}
+  .bill-row-card .bill-meta{font-size:11px; color:var(--text-mid); margin-top:2px;}
+  .bill-row-card .bill-amt{text-align:right; font-weight:800;}
+  .bill-row-card .bill-profit{font-size:11px; color:var(--seal-green); font-weight:700;}
+  .bill-row-card .bill-expand-arrow{font-size:11px; color:var(--text-mid); margin-left:8px; transition:transform 0.15s;}
+  .bill-detail{display:none; background:#FAF7EC; border:1px solid var(--line); border-top:none; border-radius:0 0 12px 12px; margin:-8px 0 8px; padding:8px 12px;}
+  .bill-detail.open{display:block;}
+  .bill-detail .bill-item-line{display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-bottom:1px dotted var(--line);}
+  .bill-detail .bill-item-line:last-child{border-bottom:none;}
+
+  /* ============ PRODUCT LIST ============ */
+  .product-row{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px;
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  .product-row.low-stock{border-color:var(--stamp-red); background:#FFF7F8;}
+  .product-row-name{font-weight:700; font-size:14px;}
+  .product-row-meta{font-size:11.5px; color:var(--text-mid); margin-top:3px; line-height:1.5;}
+  .product-row-right{text-align:right; flex-shrink:0;}
+  .product-row-stock{font-weight:800; font-size:15px; color:var(--ink);}
+  .product-row-stock.low{color:var(--stamp-red);}
+  .stock-badge{font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; background:#F5EEF4; color:var(--text-mid); margin-top:3px; display:inline-block;}
+  .stock-badge.low{background:#FDECEF; color:var(--stamp-red);}
+</style>
+</head>
+<body>
+<div id="toastContainer"></div>
+
+<div id="configWarning" style="display:none;" class="config-warning">
+  <b>Setup needed:</b> open this file in a text editor, paste your Apps Script Web App URL into the <code>WEBAPP_URL</code> line near the top, save, and reopen it.
+</div>
+<div id="jsErrorBanner" style="display:none;" class="config-warning"></div>
+
+<div id="app" style="display:none;">
+
+  <!-- ===================== TOP NAV ===================== -->
+  <div class="topbar">
+    <div class="topbar-row">
+      <div class="brand"><span class="brand-name">Aadhya Children Wear</span><span class="brand-chip">Jiyana House</span></div>
+      <button class="btn-icon" id="btnMoreMenu">☰</button>
+    </div>
+    <div class="tabbar">
+      <button class="tabbtn active" data-tab="sales">🛍️ Sales Entry</button>
+      <button class="tabbtn" data-tab="dashboard">📊 Dashboard</button>
+      <button class="tabbtn" data-tab="purchase">📦 Purchase</button>
+    </div>
+  </div>
+
+  <!-- ===================== MORE MENU ===================== -->
+  <div class="more-panel" id="morePanel">
+    <div class="more-sheet">
+      <h3>More</h3>
+      <button class="more-link" data-tab="products">📋 Product List</button>
+      <button class="more-link" data-tab="print">🏷️ Print Labels</button>
+      <button class="more-link" data-tab="settings">⚙️ Settings</button>
+      <div style="flex:1;"></div>
+      <button class="btn secondary" id="btnCloseMore" style="width:100%;">Close</button>
+    </div>
+  </div>
+
+  <!-- ===================== SALES ENTRY (home) ===================== -->
+  <section class="page active" id="page-sales">
+    <div class="scan-card">
+      <div class="scan-row">
+        <input type="text" id="sc_manualEntry" placeholder="Type or scan a barcode..." autocomplete="off">
+        <button class="cam-toggle-btn" id="sc_btnEnableCam" title="Camera Scan">📷</button>
+      </div>
+      <div id="sc_cameraStatus"></div>
+      <div id="sc_reader"></div>
+      <div id="sc_torchWrap"><button id="sc_btnTorch">🔦 Torch On/Off</button></div>
+      <div class="quick-add-banner" id="sc_quickAddBanner">⚡ <b>Quick Add</b> is on — scan an item and it goes straight into the cart</div>
+
+      <div class="divider">OR — if the camera isn't working</div>
+      <input type="text" id="sc_nameSearch" placeholder="🔎 Search by product name (e.g. Frock, Baby Mitten)..." autocomplete="off">
+      <div id="sc_nameResults" class="name-results"></div>
+    </div>
+
+    <div id="sc_flashArea"></div>
+
+    <!-- Shown only when Quick Add is OFF, for manual qty/rate review before adding -->
+    <div class="card" id="sc_productCard" style="display:none;">
+      <div class="product-info" id="sc_productInfo"></div>
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>Quantity</label>
+          <div class="qty-stepper">
+            <button type="button" id="sc_btnQtyMinus" class="qty-btn">−</button>
+            <input type="number" id="sc_qtyInput" value="1" min="1">
+            <button type="button" id="sc_btnQtyPlus" class="qty-btn">+</button>
+          </div>
+        </div>
+        <div>
+          <label>Sale Rate (₹)</label>
+          <input type="number" id="sc_rateInput" value="0" min="0">
+        </div>
+      </div>
+      <button class="btn" id="sc_btnAddToCart" style="width:100%; margin-top:10px;">Add to Cart</button>
+    </div>
+
+    <div class="card" id="sc_emptyHint">
+      <div style="text-align:center; color:var(--text-mid); font-size:13px; padding:6px 0;">
+        📷 Turn on the camera, scan/type a barcode (USB scanner + Enter also works), <b>or search by name above</b> — all three add the item straight to the cart.
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PURCHASE (Restock / Add Product / History) ===================== -->
+  <section class="page" id="page-purchase">
+    <div class="sub-tabbar">
+      <button class="subtab active" data-subtab="pu-restock">📥 Restock</button>
+      <button class="subtab" data-subtab="pu-add">➕ Add Product</button>
+      <button class="subtab" data-subtab="pu-history">📜 History</button>
+      <button class="subtab" data-subtab="pu-dashboard">📊 Dashboard</button>
+    </div>
+
+    <!-- ---------- RESTOCK (scan existing product) ---------- -->
+    <div class="subpage active" id="subpage-pu-restock">
+      <div class="scan-card">
+        <div class="scan-row">
+          <input type="text" id="pu_manualEntry" placeholder="Type or scan a barcode..." autocomplete="off">
+          <button class="cam-toggle-btn" id="pu_btnEnableCam" title="Camera Scan">📷</button>
+        </div>
+        <div id="pu_cameraStatus"></div>
+        <div id="pu_reader"></div>
+        <div id="pu_torchWrap"><button id="pu_btnTorch">🔦 Torch On/Off</button></div>
+
+        <div class="divider">OR — if the camera isn't working</div>
+        <input type="text" id="pu_nameSearch" placeholder="🔎 Search by product name..." autocomplete="off">
+        <div id="pu_nameResults" class="name-results"></div>
+      </div>
+
+      <div id="pu_flashArea"></div>
+
+      <div class="card" id="pu_productCard" style="display:none;">
+        <div class="product-info" id="pu_productInfo"></div>
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <label>Quantity Received</label>
+            <div class="qty-stepper">
+              <button type="button" id="pu_btnQtyMinus" class="qty-btn">−</button>
+              <input type="number" id="pu_qtyInput" value="1" min="1">
+              <button type="button" id="pu_btnQtyPlus" class="qty-btn">+</button>
+            </div>
+          </div>
+          <div>
+            <label>Cost per unit (₹)</label>
+            <input type="number" id="pu_costInput" value="0" min="0">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Company Name</label>
+            <input type="text" id="pu_companyInput" placeholder="e.g. Aadhya Wholesale">
+          </div>
+          <div>
+            <label>Remarks</label>
+            <input type="text" id="pu_remarksInput" placeholder="optional note">
+          </div>
+        </div>
+        <button class="btn" id="pu_btnSubmit" style="width:100%; margin-top:10px;">Confirm Purchase</button>
+      </div>
+
+      <div class="card" id="pu_emptyHint">
+        <div style="text-align:center; color:var(--text-mid); font-size:13px; padding:6px 0;">
+          📦 When new stock arrives, scan the barcode (or search by name) and confirm the quantity + cost.
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- ADD NEW PRODUCT ---------- -->
+    <div class="subpage" id="subpage-pu-add">
+      <div class="card">
+        <label style="margin-top:0;">Item Name</label>
+        <input type="text" id="ap_name" placeholder="e.g. Baby Mitten">
+        <label>Category</label>
+        <select id="ap_category"><option>Loading...</option></select>
+        <div id="ap_newCatBox" style="display:none; margin-top:8px; padding:10px; background:#fff; border:1px dashed var(--line); border-radius:10px;">
+          <label>New Category Name</label>
+          <input type="text" id="ap_newCatName" placeholder="e.g. Winter Wear">
+          <label>New Category Code (2-4 letters)</label>
+          <input type="text" id="ap_newCatCode" placeholder="e.g. W" maxlength="4">
+        </div>
+        <label>Size</label>
+        <input type="text" id="ap_size" placeholder="e.g. Free, S-M">
+        <label>Cost Price (₹)</label>
+        <input type="number" id="ap_cost" min="0" placeholder="0">
+        <label>Markup % (to suggest an MRP)</label>
+        <input type="number" id="ap_markup" min="0" placeholder="e.g. 60">
+        <label>MRP (₹) <span style="font-weight:400; text-transform:none; font-size:10px;">— auto-suggested, edit if you like</span></label>
+        <input type="number" id="ap_mrp" min="0" placeholder="0">
+        <label>Purchase Qty (units received now)</label>
+        <input type="number" id="ap_qty" min="0" value="0">
+        <p style="font-size:11px; color:var(--text-mid); margin:4px 0 0;">This will also be recorded automatically in the Purchase Log.</p>
+        <label>Purchase Company Name</label>
+        <input type="text" id="ap_company" placeholder="e.g. Aadhya Wholesale">
+        <label>Remarks</label>
+        <input type="text" id="ap_remarks" placeholder="optional note">
+        <button class="btn" id="ap_btnSubmit" style="width:100%; margin-top:12px;">Add Product</button>
+        <div id="ap_status"></div>
+      </div>
+    </div>
+
+    <!-- ---------- PURCHASE HISTORY ---------- -->
+    <div class="subpage" id="subpage-pu-history">
+      <div class="card">
+        <div class="row" style="align-items:flex-end;">
+          <div>
+            <label style="margin-top:0;">Company</label>
+            <select id="ph_filterCompany"><option value="">-- All Companies --</option></select>
+          </div>
+          <div style="flex:0 0 auto;">
+            <button class="btn secondary" id="ph_btnRefresh" type="button">🔄 Refresh</button>
+          </div>
+        </div>
+      </div>
+      <div id="ph_list"></div>
+    </div>
+
+    <!-- ---------- PURCHASE DASHBOARD ---------- -->
+    <div class="subpage" id="subpage-pu-dashboard">
+      <div class="card">
+        <div class="period-tabbar">
+          <button class="period-tab active" id="pd_ptToday" data-period="today">Today</button>
+          <button class="period-tab" id="pd_ptDate" data-period="day">Date</button>
+          <button class="period-tab" id="pd_ptMonth" data-period="month">Month</button>
+          <button class="period-tab" id="pd_ptYear" data-period="year">Year</button>
+        </div>
+        <div class="row" style="align-items:flex-end; margin-top:2px;">
+          <div id="pd_pickerWrap" style="display:none;">
+            <label style="margin-top:0;" id="pd_pickerLabel">Date</label>
+            <input type="date" id="pd_date">
+            <input type="month" id="pd_month" style="display:none;">
+            <input type="number" id="pd_year" style="display:none;" placeholder="e.g. 2026" min="2000" max="2100">
+          </div>
+          <div style="flex:0 0 auto;">
+            <button class="btn secondary" id="pd_btnRefresh" type="button">🔄 Refresh</button>
+          </div>
+        </div>
+        <div id="pd_periodLabel" style="font-size:12px; color:var(--text-mid); font-weight:700; margin-top:8px;"></div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="dash-card dash-teal">
+          <div class="dash-label">Total Purchases</div>
+          <div class="dash-value" id="pd_purchaseTotal">₹0</div>
+          <div class="dash-sub" id="pd_purchaseCount">0 entries</div>
+        </div>
+        <div class="dash-card dash-yellow">
+          <div class="dash-label">Avg. Purchase Value</div>
+          <div class="dash-value" id="pd_avgPurchase">₹0</div>
+          <div class="dash-sub">per entry</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <label style="margin-top:0;">📦 Most Restocked Items</label>
+        <div id="pd_topItems" style="margin-top:8px;"></div>
+      </div>
+      <div id="pd_status"></div>
+    </div>
+  </section>
+
+  <!-- ===================== DASHBOARD (Sales) ===================== -->
+  <section class="page" id="page-dashboard">
+    <div class="card">
+      <div class="period-tabbar">
+        <button class="period-tab active" id="db_ptToday" data-period="today">Today</button>
+        <button class="period-tab" id="db_ptDate" data-period="day">Date</button>
+        <button class="period-tab" id="db_ptMonth" data-period="month">Month</button>
+        <button class="period-tab" id="db_ptYear" data-period="year">Year</button>
+      </div>
+      <div class="row" style="align-items:flex-end; margin-top:2px;">
+        <div id="db_pickerWrap" style="display:none;">
+          <label style="margin-top:0;" id="db_pickerLabel">Date</label>
+          <input type="date" id="db_date">
+          <input type="month" id="db_month" style="display:none;">
+          <input type="number" id="db_year" style="display:none;" placeholder="e.g. 2026" min="2000" max="2100">
+        </div>
+        <div style="flex:0 0 auto;">
+          <button class="btn secondary" id="db_btnRefresh" type="button">🔄 Refresh</button>
+        </div>
+      </div>
+      <div id="db_periodLabel" style="font-size:12px; color:var(--text-mid); font-weight:700; margin-top:8px;"></div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card dash-pink">
+        <div class="dash-label">Total Sales</div>
+        <div class="dash-value" id="db_salesTotal">₹0</div>
+        <div class="dash-sub" id="db_salesCount">0 bills</div>
+      </div>
+      <div class="dash-card dash-purple">
+        <div class="dash-label">Gross Profit</div>
+        <div class="dash-value" id="db_profit">₹0</div>
+        <div class="dash-sub" id="db_billCount">0 bills</div>
+      </div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card dash-blue">
+        <div class="dash-label">Discount Given</div>
+        <div class="dash-value" id="db_discount">₹0</div>
+      </div>
+      <div class="dash-card dash-yellow">
+        <div class="dash-label">Average Bill Value</div>
+        <div class="dash-value" id="db_avgBill">₹0</div>
+        <div class="dash-sub">per bill</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label style="margin-top:0;">💳 Payment Method Breakdown</label>
+      <div id="db_paymentBreakdown" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <label style="margin-top:0;">🔥 Top Sellers</label>
+      <div id="db_topItems" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card">
+      <label style="margin-top:0;">🧾 Recent Bills</label>
+      <p style="font-size:11px; color:var(--text-mid); margin:2px 0 8px;">Bill-wise profit is only shown for bills created after this Bill Number feature was added. Tap a bill to see its items.</p>
+      <input type="text" id="db_billSearch" placeholder="🔎 Search by bill number or item name...">
+      <div id="db_bills" style="margin-top:8px;"></div>
+    </div>
+    <div id="db_status"></div>
+  </section>
+
+  <!-- ===================== PRODUCT LIST (via More) ===================== -->
+  <section class="page" id="page-products">
+    <div class="card">
+      <label style="margin-top:0;">Search</label>
+      <input type="text" id="pl_search" placeholder="Search by name, barcode, or category...">
+      <div class="row" style="margin-top:8px;">
+        <div>
+          <label>Category</label>
+          <select id="pl_filterCategory"><option value="">-- All --</option></select>
+        </div>
+        <div style="flex:0 0 auto; align-self:flex-end;">
+          <button class="btn secondary" id="pl_btnRefresh" type="button">🔄 Refresh</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="padding:10px 14px;">
+      <div id="pl_summary" style="font-size:12px; color:var(--text-mid); font-weight:700;"></div>
+    </div>
+    <div id="pl_list"></div>
+  </section>
+
+  <!-- ===================== PRINT LABELS (via More) ===================== -->
+  <section class="page" id="page-print">
+    <div class="card">
+      <label>Company Name</label>
+      <select id="lp_filterCompany"><option value="">-- All Companies --</option></select>
+
+      <label>Product</label>
+      <select id="lp_select"><option>Loading...</option></select>
+
+      <div class="row" id="lp_alignRow" style="margin-top:8px;">
+        <div>
+          <label>Top Margin (mm)</label>
+          <input type="number" id="lp_marginTop" value="12.5" step="0.5">
+        </div>
+        <div>
+          <label>Left Margin (mm)</label>
+          <input type="number" id="lp_marginLeft" value="7" step="0.5">
+        </div>
+        <div>
+          <label>Column Gap (mm)</label>
+          <input type="number" id="lp_gapCol" value="2" step="0.5">
+        </div>
+        <div>
+          <label>Row Gap (mm)</label>
+          <input type="number" id="lp_gapRow" value="0" step="0.5">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px; align-items:flex-end;">
+        <div>
+          <label>Copies</label>
+          <input type="number" id="lp_copies" value="10" min="1" max="200">
+          <div class="quick-copies">
+            <button type="button" data-val="10">10</button>
+            <button type="button" data-val="20">20</button>
+            <button type="button" data-val="30">30</button>
+          </div>
+        </div>
+        <div style="flex:0 0 auto;">
+          <button class="btn secondary" id="lp_btnAdd" type="button">+ Add to Sheet</button>
+        </div>
+      </div>
+      <div id="lp_queue" style="margin-top:12px;"></div>
+      <div class="queue-total" id="lp_total"></div>
+      <div class="row" style="margin-top:12px;">
+        <button class="btn" id="lp_btnGenerate">Generate Labels</button>
+        <button class="btn secondary" id="lp_btnPrint">🖨️ Print</button>
+        <button class="btn secondary" id="lp_btnTestGrid" type="button">📐 Test Grid</button>
+        <button class="btn secondary" id="lp_btnClear" type="button">Clear</button>
+      </div>
+      <div id="lp_status"></div>
+    </div>
+    <div id="lp_labelSheet"></div>
+  </section>
+
+  <!-- ===================== SETTINGS (via More) ===================== -->
+  <section class="page" id="page-settings">
+    <div class="card">
+      <label style="margin-top:0;">Scan Feedback</label>
+      <div class="toggle-row">
+        <div class="toggle-row-text"><b>🔔 Sound on Scan</b><span>Plays a beep on every successful scan</span></div>
+        <label class="switch"><input type="checkbox" id="st_sound" checked><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-row-text"><b>📳 Vibration on Scan</b><span>Vibrates the phone briefly</span></div>
+        <label class="switch"><input type="checkbox" id="st_vibrate" checked><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-row-text"><b>⚡ Quick Add Mode</b><span>Adds a scanned item to the cart instantly (adjust qty/rate later from the cart)</span></div>
+        <label class="switch"><input type="checkbox" id="st_quickadd" checked><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="card">
+      <label style="margin-top:0;">App Info</label>
+      <div style="font-size:12px; color:var(--text-mid); line-height:1.7;">
+        Aadhya Children Wear — Jiyana House<br>
+        Sales, Purchase, Add Product, Print Labels, and Dashboards all in one place.
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ===================== CART STICKY BAR ===================== -->
+<div class="cart-bar" id="cartBar" style="display:none;">
+  <div class="cart-bar-info">
+    <span class="cart-bar-count" id="cartBarCount">0 items</span>
+    <span class="cart-bar-total" id="cartBarTotal">₹0</span>
+  </div>
+  <span class="cart-bar-cta">View Cart →</span>
+</div>
+
+<!-- ===================== CART OVERLAY (checkout) ===================== -->
+<div class="overlay" id="cartOverlay">
+  <div class="overlay-header">
+    <button class="btn-icon" id="btnCloseCart">←</button>
+    <h2>Your Cart</h2>
+  </div>
+  <div class="overlay-body">
+    <div id="sc_billList"></div>
+
+    <div class="discount-box" id="sc_discountBox" style="display:none;">
+      <div class="row" style="margin-bottom:0;">
+        <div>
+          <label>Bill Total (₹)</label>
+          <input type="number" id="sc_billSubtotal" disabled>
+        </div>
+        <div>
+          <label>Amount Received from Customer (₹)</label>
+          <input type="number" id="sc_finalAmount" placeholder="e.g. 530">
+        </div>
+      </div>
+      <div id="sc_discountBadge"></div>
+      <div class="round-off-row">
+        <span class="round-off-label">Round Off:</span>
+        <button type="button" class="round-btn" data-round="10">₹10</button>
+        <button type="button" class="round-btn" data-round="50">₹50</button>
+        <button type="button" class="round-btn" data-round="100">₹100</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:10px;">
+      <label style="margin-top:0;">Payment Method</label>
+      <div class="payment-method-row">
+        <button type="button" class="pm-btn active" data-method="Cash">💵 Cash</button>
+        <button type="button" class="pm-btn" data-method="Online">📲 Online</button>
+        <button type="button" class="pm-btn" data-method="Both">🔀 Both</button>
+      </div>
+    </div>
+  </div>
+  <div class="overlay-footer">
+    <div class="row">
+      <button class="btn secondary" id="sc_btnClearBill" type="button">Clear Cart</button>
+      <button class="btn" id="sc_btnCompleteBill" style="flex:2;">✅ Complete Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== BILL CONFIRMATION (shown after a sale completes) ===================== -->
+<div class="overlay" id="billConfirmOverlay">
+  <div class="overlay-header">
+    <button class="btn-icon" id="btnCloseBillConfirm">✕</button>
+    <h2>Sale Completed</h2>
+  </div>
+  <div class="overlay-body">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:38px;">✅</div>
+      <div class="bill-no" style="font-size:16px; margin-top:6px;" id="bc_billNumber"></div>
+      <div style="font-size:12px; color:var(--text-mid); margin-top:2px;" id="bc_meta"></div>
+    </div>
+    <div class="card">
+      <div id="bc_itemList"></div>
+      <div class="receipt-total" style="margin-top:10px;"><span>Grand Total</span><span id="bc_grandTotal">₹0</span></div>
+    </div>
+  </div>
+  <div class="overlay-footer">
+    <button class="btn" id="btnBillConfirmDone" style="width:100%;">Done</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// GLOBAL SAFETY NET — one broken handler never silently kills every button.
+// ============================================================
+window.addEventListener("error", function(e){
+  const banner = document.getElementById("jsErrorBanner");
+  if(banner){
+    banner.style.display = "block";
+    banner.innerHTML = "<b>A JavaScript error occurred (which is why some buttons aren't working):</b><br>" +
+      (e.message || "Unknown error") + (e.filename ? ("<br><span style='font-size:11px;color:#888;'>" + e.filename + ":" + e.lineno + "</span>") : "");
+  }
+});
+
+// ============================================================
+// EK BAAR YAHAN APNA APPS SCRIPT WEB APP URL PASTE KARO
+// ============================================================
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwdfD2hdCzmfQxl0ceSwVdFv3TOJ8g4N4B5w0oMX07ZzfoAASxVNz8zvXuY35QaxbX3wA/exec";
+
+function toast(msg, type){
+  const el = document.createElement("div");
+  el.className = "toast " + type;
+  el.textContent = msg;
+  document.getElementById("toastContainer").appendChild(el);
+  setTimeout(() => {
+    el.style.animation = "toastOut 0.3s ease-in forwards";
+    setTimeout(() => el.remove(), 300);
+  }, 1600);
+}
+
+async function apiCall(params){
+  const url = WEBAPP_URL + "?" + new URLSearchParams(params).toString() + "&_=" + Date.now();
+  const res = await fetch(url, { cache: "no-store" });
+  if(!res.ok){ throw new Error("Server returned status " + res.status + " — check the deployment."); }
+  return await res.json();
+}
+
+// ============================================================
+// PRODUCT CACHE — loaded once at startup and kept in sync locally, so
+// barcode scans resolve INSTANTLY from memory instead of waiting on a
+// fresh Apps Script network round-trip for every single scan. This is
+// the main fix for scan-to-product-appearing delay: the "lookup" call
+// (which used to run on every scan) is removed from the scan path —
+// the network is only used for the actual sale/purchase, once, per item.
+// ============================================================
+let PRODUCT_CACHE = [];       // same shape as the "stock" API action
+let PRODUCT_BY_BARCODE = {};  // barcode -> product row, for O(1) lookup
+
+function pc_index(){
+  PRODUCT_BY_BARCODE = {};
+  PRODUCT_CACHE.forEach(p => { PRODUCT_BY_BARCODE[String(p.barcode).trim()] = p; });
+}
+async function refreshProductCache(){
+  try{
+    const data = await apiCall({ action: "stock" });
+    if(Array.isArray(data)){
+      PRODUCT_CACHE = data;
+      pc_index();
+      lp_products = PRODUCT_CACHE;
+      if(document.getElementById("lp_select")){ lp_populateCompanyDropdown(); lp_renderOptions(lp_products.map((p,i)=>i)); }
+      if(typeof pl_render === "function") pl_render();
+      if(typeof ph_populateCompanyDropdown === "function") ph_populateCompanyDropdown();
+    }
+  }catch(e){ console.warn("Product cache refresh failed:", e.message); }
+  return PRODUCT_CACHE;
+}
+// Instant, synchronous lookup — no network call. Falls back to the server
+// only if the cache hasn't loaded yet (e.g. very first scan before startup
+// fetch finished).
+function pc_lookup(barcode){
+  const clean = String(barcode).replace(/\*/g, "").trim();
+  const p = PRODUCT_BY_BARCODE[clean];
+  if(!p) return { found: false, barcode: clean };
+  return { found: true, name: p.name, category: p.category, size: p.size, mrp: p.mrp, cost: p.cost, currentStock: p.stock, barcode: p.barcode };
+}
+// Searches the cache by name, category, or barcode substring — this is the
+// camera-free fallback: if the phone/browser can't open the camera (very
+// common on a plain http:// page, or a phone that denies permission), the
+// shop can still find a product by typing its name instead of its barcode.
+function pc_searchByName(query, limit){
+  const q = String(query || "").trim().toLowerCase();
+  if(q.length < 1) return [];
+  return PRODUCT_CACHE
+    .filter(p => String(p.name).toLowerCase().includes(q) || String(p.category||"").toLowerCase().includes(q) || String(p.barcode).toLowerCase().includes(q))
+    .slice(0, limit || 8);
+}
+// Converts a raw cache row into the same shape pc_lookup()/apiCall("lookup")
+// returns, so a name-search pick can be fed into the exact same
+// add-to-cart / add-to-purchase code path as a real barcode scan.
+function pc_toProductShape(p){
+  return { found: true, name: p.name, category: p.category, size: p.size, mrp: p.mrp, cost: p.cost, currentStock: p.stock, barcode: p.barcode };
+}
+// Keeps the cache's stock counts in sync right after a sale/purchase succeeds,
+// so the NEXT scan reflects it instantly without waiting for a full refetch.
+function pc_adjustStock(barcode, delta){
+  const p = PRODUCT_BY_BARCODE[String(barcode).trim()];
+  if(p) p.stock = Number(p.stock || 0) + delta;
+}
+// Wakes up the Apps Script container the moment the page loads, so the
+// FIRST real scan/sale of the session doesn't pay a cold-start latency hit.
+function warmUp(){ apiCall({ action: "ping" }).catch(()=>{}); }
+
+function on(id, evt, fn){
+  const el = document.getElementById(id);
+  if(!el){ console.warn("Element not found, skipping bind:", id); return; }
+  el.addEventListener(evt, function(...args){
+    try{ fn.apply(this, args); }
+    catch(err){ console.error("Error in handler for #" + id, err); toast("⚠️ " + err.message, "error"); }
+  });
+}
+
+// ============================================================
+// SETTINGS (persisted on this device)
+// ============================================================
+const SETTINGS_KEY = "dukaan_settings_v1";
+let settings = { sound: true, vibrate: true, quickAdd: true };
+function loadSettings(){
+  try{
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if(raw) settings = Object.assign(settings, JSON.parse(raw));
+  }catch(e){}
+}
+function saveSettings(){
+  try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){}
+}
+function initSettingsTab(){
+  document.getElementById("st_sound").checked = settings.sound;
+  document.getElementById("st_vibrate").checked = settings.vibrate;
+  document.getElementById("st_quickadd").checked = settings.quickAdd;
+  on("st_sound", "change", (e) => { settings.sound = e.target.checked; saveSettings(); });
+  on("st_vibrate", "change", (e) => { settings.vibrate = e.target.checked; saveSettings(); });
+  on("st_quickadd", "change", (e) => { settings.quickAdd = e.target.checked; saveSettings(); refreshQuickAddBanner(); });
+}
+function refreshQuickAddBanner(){
+  const banner = document.getElementById("sc_quickAddBanner");
+  if(!banner) return;
+  banner.style.display = settings.quickAdd ? "flex" : "none";
+}
+function feedback(){
+  if(settings.vibrate && navigator.vibrate) navigator.vibrate(90);
+  if(!settings.sound) return;
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 1050; g.gain.value = 0.15;
+    o.start(); setTimeout(()=>{o.stop(); ctx.close();}, 90);
+  }catch(e){}
+}
+
+// ============================================================
+// NAV: top tabs + More menu
+// ============================================================
+function switchTab(tab){
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  const target = document.getElementById("page-" + tab);
+  if(target) target.classList.add("active");
+
+  document.querySelectorAll(".tabbtn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".more-link").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+
+  // Cart bar only makes sense on the Sales page
+  updateCartBar();
+  if(tab === "dashboard") loadDashboard();
+  if(tab === "products" && typeof pl_render === "function") pl_render();
+  closeMoreMenu();
+}
+function openMoreMenu(){ document.getElementById("morePanel").classList.add("active"); }
+function closeMoreMenu(){ document.getElementById("morePanel").classList.remove("active"); }
+
+function initNav(){
+  document.querySelectorAll(".tabbtn").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+  document.querySelectorAll(".more-link").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+  on("btnMoreMenu", "click", openMoreMenu);
+  on("btnCloseMore", "click", closeMoreMenu);
+  document.getElementById("morePanel").addEventListener("click", (e) => { if(e.target.id === "morePanel") closeMoreMenu(); });
+}
+
+// ============================================================
+// APP INIT
+// ============================================================
+function init(){
+  loadSettings();
+  warmUp();
+  try{ initNav(); }catch(e){ console.error(e); }
+  try{ initSettingsTab(); }catch(e){ console.error(e); }
+  try{ initSalesTab(); }catch(e){ console.error("Sales tab init error", e); toast("⚠️ Sales tab init error: " + e.message, "error"); }
+  try{ initPurchaseSubtabs(); }catch(e){ console.error(e); }
+  try{ initPurchaseTab(); }catch(e){ console.error("Purchase tab init error", e); }
+  try{ initCartOverlay(); }catch(e){ console.error(e); }
+  try{ loadCategoriesForAddTab(); }catch(e){ console.error(e); }
+  try{ initDashboard(); }catch(e){ console.error("Dashboard init error", e); }
+  try{ initAddTab(); }catch(e){ console.error(e); }
+  try{ initPrintTab(); }catch(e){ console.error(e); }
+  try{ initPurchaseHistoryTab(); }catch(e){ console.error(e); }
+  try{ initPurchaseDashboard(); }catch(e){ console.error(e); }
+  try{ initProductListTab(); }catch(e){ console.error(e); }
+  refreshProductCache(); // one network call at startup fills the cache for instant scans
+  refreshQuickAddBanner();
+}
+
+if(!WEBAPP_URL || WEBAPP_URL.indexOf("PASTE_YOUR") === 0){
+  document.getElementById("configWarning").style.display = "block";
+} else {
+  document.getElementById("app").style.display = "block";
+  init();
+}
+
+// ============================================================
+// CART (shared across Sales tab + Cart overlay)
+// ============================================================
+let sc_bill = []; // { barcode, name, size, qty, rate, total }
+
+function sc_billGrandTotal(){ return sc_bill.reduce((s,b) => s + b.total, 0); }
+
+function updateCartBar(){
+  const bar = document.getElementById("cartBar");
+  const onSales = document.getElementById("page-sales").classList.contains("active");
+  if(sc_bill.length === 0 || !onSales){ bar.style.display = "none"; return; }
+  bar.style.display = "flex";
+  const count = sc_bill.reduce((s,b) => s + b.qty, 0);
+  document.getElementById("cartBarCount").textContent = `${count} item${count>1?'s':''}`;
+  document.getElementById("cartBarTotal").textContent = `₹${sc_billGrandTotal()}`;
+}
+
+function addOrIncrementCartItem(product, qty, rate){
+  const existing = sc_bill.find(b => b.barcode === product.barcode);
+  if(existing){
+    existing.qty += qty;
+    existing.total = existing.qty * existing.rate;
+  } else {
+    sc_bill.push({ barcode: product.barcode, name: product.name, size: product.size, qty, rate, total: qty * rate });
+  }
+  updateCartBar();
+}
+
+function sc_renderBill(){
+  const listEl = document.getElementById("sc_billList");
+  const discountBox = document.getElementById("sc_discountBox");
+
+  if(sc_bill.length === 0){
+    listEl.innerHTML = '<div class="bill-empty"><span class="big-emoji">🛒</span>Cart is empty — scan or search to add items</div>';
+    discountBox.style.display = "none";
+    return;
+  }
+
+  listEl.innerHTML = sc_bill.map((b,i) => `
+    <div class="bill-item">
+      <div>
+        <div class="bill-item-name">${b.name}${b.size?(' · '+b.size):''}</div>
+        <div class="bill-item-meta">₹${b.rate} / unit</div>
+        <div class="bill-item-qty">
+          <button onclick="sc_changeQty(${i},-1)">−</button>
+          <span>${b.qty}</span>
+          <button onclick="sc_changeQty(${i},1)">+</button>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div class="bill-item-amount">₹${b.total}</div>
+        <button class="bill-item-remove" onclick="sc_removeBillItem(${i})">✕</button>
+      </div>
+    </div>`).join("");
+
+  const grandTotal = sc_billGrandTotal();
+  discountBox.style.display = "block";
+  document.getElementById("sc_billSubtotal").value = grandTotal;
+  if(!document.getElementById("sc_finalAmount").dataset.touched){
+    document.getElementById("sc_finalAmount").value = grandTotal;
+  }
+  sc_updateDiscountBadge();
+  updateCartBar();
+}
+
+function sc_changeQty(i, delta){
+  sc_bill[i].qty = Math.max(1, sc_bill[i].qty + delta);
+  sc_bill[i].total = sc_bill[i].qty * sc_bill[i].rate;
+  sc_renderBill();
+}
+function sc_removeBillItem(i){ sc_bill.splice(i,1); document.getElementById("sc_finalAmount").dataset.touched = ""; sc_renderBill(); }
+
+function sc_updateDiscountBadge(){
+  const grandTotal = sc_billGrandTotal();
+  const finalAmount = parseFloat(document.getElementById("sc_finalAmount").value);
+  const badge = document.getElementById("sc_discountBadge");
+  if(isNaN(finalAmount) || finalAmount === grandTotal){ badge.textContent = ""; badge.className = ""; return; }
+  const diff = grandTotal - finalAmount;
+  if(diff > 0){
+    badge.textContent = `💸 Discount Applied: ₹${diff.toFixed(2)} (spread proportionally across all items)`;
+    badge.className = "discount-applied";
+  } else {
+    badge.textContent = `➕ Extra ₹${Math.abs(diff).toFixed(2)} (customer paid more than the bill total)`;
+    badge.className = "discount-extra";
+  }
+}
+
+function sc_computeProportionalSplit(items, finalAmount){
+  const grandTotal = items.reduce((s,b) => s + b.total, 0);
+  const discount = grandTotal - finalAmount;
+  if (Math.abs(discount) < 0.005) {
+    return items.map(b => ({ ...b, finalTotal: b.total, finalRate: b.rate }));
+  }
+  let runningTotal = 0;
+  return items.map((b, idx) => {
+    const proportion = b.total / grandTotal;
+    let finalTotal = Math.round((b.total - proportion * discount) * 100) / 100;
+    if (idx === items.length - 1) finalTotal = Math.round((finalAmount - runningTotal) * 100) / 100;
+    runningTotal += finalTotal;
+    const finalRate = Math.round((finalTotal / b.qty) * 100) / 100;
+    return { ...b, finalTotal, finalRate };
+  });
+}
+
+let sc_paymentMethod = "Cash"; // default; changed via the payment-method buttons
+
+function initCartOverlay(){
+  on("btnCloseCart", "click", closeCartOverlay);
+  document.getElementById("cartBar").addEventListener("click", openCartOverlay);
+  on("sc_finalAmount", "input", (e) => { e.target.dataset.touched = "1"; sc_updateDiscountBadge(); });
+  document.querySelectorAll(".round-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const nearest = parseInt(btn.dataset.round);
+      const grandTotal = sc_billGrandTotal();
+      const rounded = Math.floor(grandTotal / nearest) * nearest;
+      document.getElementById("sc_finalAmount").value = rounded;
+      document.getElementById("sc_finalAmount").dataset.touched = "1";
+      sc_updateDiscountBadge();
+    });
+  });
+  document.querySelectorAll(".pm-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".pm-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      sc_paymentMethod = btn.dataset.method;
+    });
+  });
+  on("sc_btnClearBill", "click", () => {
+    if(sc_bill.length === 0) return;
+    if(confirm("Clear the entire cart?")){
+      sc_bill = []; document.getElementById("sc_finalAmount").dataset.touched = ""; sc_renderBill();
+    }
+  });
+  on("sc_btnCompleteBill", "click", sc_completeBill);
+  on("btnCloseBillConfirm", "click", closeBillConfirmOverlay);
+  on("btnBillConfirmDone", "click", closeBillConfirmOverlay);
+}
+function closeBillConfirmOverlay(){ document.getElementById("billConfirmOverlay").classList.remove("active"); }
+function openCartOverlay(){ sc_renderBill(); document.getElementById("cartOverlay").classList.add("active"); }
+function closeCartOverlay(){ document.getElementById("cartOverlay").classList.remove("active"); }
+
+async function sc_completeBill(){
+  if(sc_bill.length === 0){ toast("Cart is empty.", "error"); return; }
+  const btn = document.getElementById("sc_btnCompleteBill");
+  btn.disabled = true; btn.textContent = "Processing...";
+
+  const grandTotal = sc_billGrandTotal();
+  const finalAmountInput = parseFloat(document.getElementById("sc_finalAmount").value);
+  const finalAmount = isNaN(finalAmountInput) ? grandTotal : finalAmountInput;
+  const adjustedItems = sc_computeProportionalSplit(sc_bill, finalAmount);
+  const paymentMethod = sc_paymentMethod;
+
+  // One unique Bill Number for this whole checkout — every line item below
+  // is tagged with it, so Sales Log can later be grouped bill-by-bill for
+  // bill-wise profit tracking.
+  let billNumber = "";
+  try{
+    const billRes = await apiCall({ action: "newBill" });
+    billNumber = billRes.billNumber || "";
+  }catch(err){ /* fall through — sale can still proceed without a bill number */ }
+
+  const results = [];
+  for(const item of adjustedItems){
+    try{
+      const res = await apiCall({ action: "sale", barcode: item.barcode, qty: item.qty, rate: item.finalRate, billNumber, paymentMethod });
+      results.push({ item, res });
+      if(res.success) pc_adjustStock(item.barcode, -item.qty); // instant local update
+    }catch(err){ results.push({ item, res: { success: false, message: err.message } }); }
+  }
+  const failed = results.filter(r => !r.res.success);
+  const succeeded = results.filter(r => r.res.success);
+
+  if(failed.length > 0){
+    toast(`⚠️ ${succeeded.length} item(s) completed, ${failed.length} failed.`, "error");
+    sc_bill = failed.map(f => ({ barcode: f.item.barcode, name: f.item.name, size: f.item.size, qty: f.item.qty, rate: f.item.rate, total: f.item.total }));
+    sc_renderBill();
+  } else {
+    toast(`✅ Sale Complete — ₹${finalAmount} (${billNumber})`, "success");
+    sc_showBillConfirmation(adjustedItems, grandTotal, finalAmount, billNumber, paymentMethod);
+    sc_bill = [];
+    document.getElementById("sc_finalAmount").dataset.touched = "";
+    sc_renderBill();
+    closeCartOverlay();
+    // Reset payment method back to the default for the next sale
+    sc_paymentMethod = "Cash";
+    document.querySelectorAll(".pm-btn").forEach(b => b.classList.toggle("active", b.dataset.method === "Cash"));
+  }
+  btn.disabled = false; btn.textContent = "✅ Complete Sale";
+}
+
+// Shows an on-screen confirmation of the completed sale (Bill Number, items,
+// payment method, total) in place of the old print/WhatsApp receipt.
+function sc_showBillConfirmation(items, grandTotal, finalAmount, billNumber, paymentMethod){
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN') + " " + now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+  const discount = grandTotal - finalAmount;
+
+  document.getElementById("bc_billNumber").textContent = billNumber || "(no bill number)";
+  document.getElementById("bc_meta").textContent = `${dateStr} · ${paymentMethod} · ${items.length} item(s)`;
+  document.getElementById("bc_itemList").innerHTML = items.map(b => `
+    <div class="bill-row"><span>${b.name}${b.size?(' ('+b.size+')'):''} × ${b.qty}</span><span>₹${b.finalTotal}</span></div>
+  `).join("") + (Math.abs(discount) >= 0.5 ? `
+    <div class="bill-row"><span>Bill Total</span><span>₹${grandTotal}</span></div>
+    <div class="bill-row"><span>${discount > 0 ? 'Discount' : 'Extra Paid'}</span><span>₹${Math.abs(discount).toFixed(2)}</span></div>` : '');
+  document.getElementById("bc_grandTotal").textContent = "₹" + finalAmount;
+
+  document.getElementById("billConfirmOverlay").classList.add("active");
+}
+
+// ============================================================
+// SALES TAB — scan + (quick add OR review card) + camera
+// ============================================================
+let sc_currentProduct = null;
+let sc_camStarted = false, sc_html5QrCode = null, sc_torchOn = false;
+let sc_lastScannedCode = null, sc_lastScanTime = 0;
+
+function initSalesTab(){
+  on("sc_manualEntry", "keydown", (e) => {
+    if(e.key === "Enter"){ const v = e.target.value.trim(); e.target.value = ""; sc_handleScan(v); }
+  });
+  on("sc_btnEnableCam", "click", sc_toggleCamera);
+  on("sc_btnTorch", "click", sc_toggleTorch);
+  on("sc_btnAddToCart", "click", sc_confirmAddToCart);
+  on("sc_btnQtyMinus", "click", () => { const i=document.getElementById("sc_qtyInput"); i.value = Math.max(1,(parseInt(i.value)||1)-1); });
+  on("sc_btnQtyPlus", "click", () => { const i=document.getElementById("sc_qtyInput"); i.value = (parseInt(i.value)||1)+1; });
+  on("sc_nameSearch", "input", (e) => sc_renderNameResults(e.target.value));
+  // A physical USB/Bluetooth barcode scanner just "types" into whichever
+  // field is focused, then sends Enter — so keep the manual-entry box
+  // focused by default on this tab for hands-free, camera-free scanning.
+  document.getElementById("sc_manualEntry").focus();
+}
+function sc_renderNameResults(query){
+  const box = document.getElementById("sc_nameResults");
+  const matches = pc_searchByName(query, 8);
+  if(!query || query.trim().length === 0){ box.innerHTML = ""; return; }
+  if(matches.length === 0){ box.innerHTML = '<div style="font-size:12px; color:#999; padding:6px 2px;">No matches found.</div>'; return; }
+  box.innerHTML = matches.map((p,i) => {
+    const out = Number(p.stock) < 1;
+    return `<div class="name-result-item ${out?'out-of-stock':''}" data-idx="${i}">
+      <div><div class="nr-name">${p.name}${p.size?(' · '+p.size):''}</div><div class="nr-meta">${p.category||''} ${p.barcode?('· '+p.barcode):''}</div></div>
+      <div class="nr-right">₹${p.mrp}<br>${out ? 'Out of stock' : ('Stock: '+p.stock)}</div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".name-result-item").forEach((el, i) => {
+    el.addEventListener("click", () => {
+      const p = matches[i];
+      if(Number(p.stock) < 1){ toast(`❌ ${p.name} — out of stock`, "error"); return; }
+      feedback();
+      sc_processProduct(pc_toProductShape(p));
+      document.getElementById("sc_nameSearch").value = "";
+      box.innerHTML = "";
+    });
+  });
+}
+
+async function sc_toggleCamera(){
+  const statusEl = document.getElementById("sc_cameraStatus");
+  if(sc_camStarted){
+    try{ await sc_html5QrCode.stop(); }catch(e){}
+    sc_camStarted = false;
+    document.getElementById("sc_reader").innerHTML = "";
+    document.getElementById("sc_torchWrap").style.display = "none";
+    statusEl.textContent = "";
+    return;
+  }
+  if(!window.isSecureContext){
+    statusEl.innerHTML = "⚠️ The camera only works on a secure (HTTPS) address — this page looks like it was opened via file:// or plain http://. " +
+      "<b>Search by name below</b>, or type/scan the barcode manually (a USB/Bluetooth scanner works too) — both work without the camera.";
+    return;
+  }
+  statusEl.textContent = "Starting camera...";
+  try{
+    if(typeof Html5Qrcode === "undefined"){ statusEl.textContent = "Camera library failed to load — check your internet connection."; return; }
+    sc_html5QrCode = new Html5Qrcode("sc_reader", {
+      formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.QR_CODE],
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }, verbose: false
+    });
+    const cameras = await Html5Qrcode.getCameras();
+    if(!cameras || cameras.length === 0){ statusEl.textContent = "No camera found."; return; }
+    const camId = cameras[cameras.length-1].id;
+    await sc_html5QrCode.start(camId, { fps: 15, qrbox: { width: 300, height: 150 }, aspectRatio: 1.5 }, (text) => sc_handleScan(text));
+    sc_camStarted = true;
+    statusEl.textContent = "Camera on — hold the barcode inside the frame";
+    document.getElementById("sc_torchWrap").style.display = "block";
+  }catch(err){ statusEl.innerHTML = "Camera error: " + (err.message || err) + " — search by name below, or type the barcode instead."; }
+}
+async function sc_toggleTorch(){
+  if(!sc_html5QrCode) return;
+  try{
+    sc_torchOn = !sc_torchOn;
+    await sc_html5QrCode.applyVideoConstraints({ advanced: [{ torch: sc_torchOn }] });
+  }catch(e){ toast("This phone doesn't support torch control.", "error"); }
+}
+
+// Debounced by barcode (not by a global lock) — different items can be scanned back-to-back
+// instantly; only the SAME code within ~1.6s is ignored to avoid double-adding one item
+// that's still sitting in the camera frame.
+async function sc_handleScan(barcode){
+  if(!barcode) return;
+  const now = Date.now();
+  if(barcode === sc_lastScannedCode && (now - sc_lastScanTime) < 1600) return;
+  sc_lastScannedCode = barcode; sc_lastScanTime = now;
+  feedback();
+  try{
+    // Instant local lookup — falls back to a network call only if the
+    // product cache hasn't finished its first load yet.
+    const product = PRODUCT_CACHE.length > 0 ? pc_lookup(barcode) : await apiCall({ action: "lookup", barcode });
+    if(!product.found){
+      toast("❌ Not found: " + product.barcode, "error");
+      document.getElementById("sc_flashArea").innerHTML = `<div class="status-msg err">❌ Barcode not found: ${product.barcode}</div>`;
+      return;
+    }
+    sc_processProduct(product);
+  }catch(err){
+    document.getElementById("sc_flashArea").innerHTML = `<div class="status-msg err">Connection error: ${err.message}</div>`;
+  }
+}
+
+// Shared by barcode scan (camera), manual barcode entry, AND name-search
+// selection — one place decides quick-add vs review-card, so all three
+// entry points behave identically regardless of whether the camera works.
+function sc_processProduct(product){
+  if(settings.quickAdd){
+    const alreadyInCart = sc_bill.find(b => b.barcode === product.barcode);
+    const inCartQty = alreadyInCart ? alreadyInCart.qty : 0;
+    if(Number(product.currentStock) - inCartQty < 1){
+      toast(`❌ ${product.name} — out of stock`, "error");
+      return;
+    }
+    addOrIncrementCartItem(product, 1, Number(product.mrp) || 0);
+    toast(`✅ ${product.name} — added to cart`, "success");
+    document.getElementById("sc_flashArea").innerHTML = "";
+  } else {
+    sc_currentProduct = product;
+    document.getElementById("sc_flashArea").innerHTML = "";
+    document.getElementById("sc_productCard").style.display = "block";
+    document.getElementById("sc_productInfo").innerHTML =
+      `<b>${product.name}</b><br>${product.category||""} ${product.size?('· '+product.size):''}<br>
+       MRP: ₹${product.mrp} &nbsp; | &nbsp; Current Stock: ${product.currentStock}`;
+    document.getElementById("sc_qtyInput").value = 1;
+    document.getElementById("sc_rateInput").value = product.mrp || 0;
+  }
+}
+
+function sc_confirmAddToCart(){
+  if(!sc_currentProduct) return;
+  const qty = parseInt(document.getElementById("sc_qtyInput").value) || 1;
+  const rate = parseFloat(document.getElementById("sc_rateInput").value) || sc_currentProduct.mrp;
+  if(qty > sc_currentProduct.currentStock){
+    document.getElementById("sc_flashArea").innerHTML = `<div class="status-msg err">❌ Only ${sc_currentProduct.currentStock} unit(s) in stock.</div>`;
+    return;
+  }
+  addOrIncrementCartItem(sc_currentProduct, qty, rate);
+  toast("✅ Added to cart: " + sc_currentProduct.name, "success");
+  document.getElementById("sc_productCard").style.display = "none";
+  sc_currentProduct = null;
+}
+
+// ============================================================
+// PURCHASE TAB — dedicated restock scan flow
+// ============================================================
+let pu_currentProduct = null;
+let pu_camStarted = false, pu_html5QrCode = null, pu_torchOn = false;
+let pu_lastScannedCode = null, pu_lastScanTime = 0;
+
+function initPurchaseTab(){
+  on("pu_manualEntry", "keydown", (e) => {
+    if(e.key === "Enter"){ const v = e.target.value.trim(); e.target.value = ""; pu_handleScan(v); }
+  });
+  on("pu_btnEnableCam", "click", pu_toggleCamera);
+  on("pu_btnTorch", "click", pu_toggleTorch);
+  on("pu_btnSubmit", "click", pu_submit);
+  on("pu_btnQtyMinus", "click", () => { const i=document.getElementById("pu_qtyInput"); i.value = Math.max(1,(parseInt(i.value)||1)-1); });
+  on("pu_btnQtyPlus", "click", () => { const i=document.getElementById("pu_qtyInput"); i.value = (parseInt(i.value)||1)+1; });
+  on("pu_nameSearch", "input", (e) => pu_renderNameResults(e.target.value));
+}
+function pu_renderNameResults(query){
+  const box = document.getElementById("pu_nameResults");
+  const matches = pc_searchByName(query, 8);
+  if(!query || query.trim().length === 0){ box.innerHTML = ""; return; }
+  if(matches.length === 0){ box.innerHTML = '<div style="font-size:12px; color:#999; padding:6px 2px;">No matches found.</div>'; return; }
+  box.innerHTML = matches.map((p,i) => `<div class="name-result-item" data-idx="${i}">
+      <div><div class="nr-name">${p.name}${p.size?(' · '+p.size):''}</div><div class="nr-meta">${p.category||''} ${p.barcode?('· '+p.barcode):''}</div></div>
+      <div class="nr-right">Stock: ${p.stock}<br>Cost ₹${p.cost}</div>
+    </div>`).join("");
+  box.querySelectorAll(".name-result-item").forEach((el, i) => {
+    el.addEventListener("click", () => {
+      feedback();
+      pu_processProduct(pc_toProductShape(matches[i]));
+      document.getElementById("pu_nameSearch").value = "";
+      box.innerHTML = "";
+    });
+  });
+}
+async function pu_toggleCamera(){
+  const statusEl = document.getElementById("pu_cameraStatus");
+  if(pu_camStarted){
+    try{ await pu_html5QrCode.stop(); }catch(e){}
+    pu_camStarted = false;
+    document.getElementById("pu_reader").innerHTML = "";
+    document.getElementById("pu_torchWrap").style.display = "none";
+    statusEl.textContent = "";
+    return;
+  }
+  if(!window.isSecureContext){
+    statusEl.innerHTML = "⚠️ The camera only works on a secure (HTTPS) address — this page looks like it was opened via file:// or plain http://. " +
+      "<b>Search by name below</b>, or type/scan the barcode manually (a USB/Bluetooth scanner works too) — both work without the camera.";
+    return;
+  }
+  statusEl.textContent = "Starting camera...";
+  try{
+    if(typeof Html5Qrcode === "undefined"){ statusEl.textContent = "Camera library failed to load."; return; }
+    pu_html5QrCode = new Html5Qrcode("pu_reader", {
+      formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39, Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.QR_CODE],
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }, verbose: false
+    });
+    const cameras = await Html5Qrcode.getCameras();
+    if(!cameras || cameras.length === 0){ statusEl.textContent = "No camera found."; return; }
+    const camId = cameras[cameras.length-1].id;
+    await pu_html5QrCode.start(camId, { fps: 15, qrbox: { width: 300, height: 150 }, aspectRatio: 1.5 }, (text) => pu_handleScan(text));
+    pu_camStarted = true;
+    statusEl.textContent = "Camera on — hold the barcode inside the frame";
+    document.getElementById("pu_torchWrap").style.display = "block";
+  }catch(err){ statusEl.innerHTML = "Camera error: " + (err.message || err) + " — search by name below, or type the barcode instead."; }
+}
+async function pu_toggleTorch(){
+  if(!pu_html5QrCode) return;
+  try{ pu_torchOn = !pu_torchOn; await pu_html5QrCode.applyVideoConstraints({ advanced: [{ torch: pu_torchOn }] }); }
+  catch(e){ toast("Torch is not supported on this device.", "error"); }
+}
+async function pu_handleScan(barcode){
+  if(!barcode) return;
+  const now = Date.now();
+  if(barcode === pu_lastScannedCode && (now - pu_lastScanTime) < 1600) return;
+  pu_lastScannedCode = barcode; pu_lastScanTime = now;
+  feedback();
+  try{
+    const product = PRODUCT_CACHE.length > 0 ? pc_lookup(barcode) : await apiCall({ action: "lookup", barcode });
+    if(!product.found){
+      toast("❌ Not found: " + product.barcode, "error");
+      document.getElementById("pu_flashArea").innerHTML = `<div class="status-msg err">❌ Barcode not found: ${product.barcode}</div>`;
+      return;
+    }
+    pu_processProduct(product);
+  }catch(err){
+    document.getElementById("pu_flashArea").innerHTML = `<div class="status-msg err">Connection error: ${err.message}</div>`;
+  }
+}
+// Shared by barcode scan (camera), manual entry, AND name-search selection.
+function pu_processProduct(product){
+  pu_currentProduct = product;
+  document.getElementById("pu_flashArea").innerHTML = "";
+  document.getElementById("pu_productCard").style.display = "block";
+  document.getElementById("pu_productInfo").innerHTML =
+    `<b>${product.name}</b><br>${product.category||""} ${product.size?('· '+product.size):''}<br>
+     Current Stock: ${product.currentStock} &nbsp; | &nbsp; Last Cost: ₹${product.cost}`;
+  document.getElementById("pu_qtyInput").value = 1;
+  document.getElementById("pu_costInput").value = product.cost || 0;
+}
+async function pu_submit(){
+  if(!pu_currentProduct) return;
+  const qty = parseInt(document.getElementById("pu_qtyInput").value) || 1;
+  const cost = parseFloat(document.getElementById("pu_costInput").value) || 0;
+  const company = document.getElementById("pu_companyInput").value.trim();
+  const remarks = document.getElementById("pu_remarksInput").value.trim();
+  const btn = document.getElementById("pu_btnSubmit");
+  btn.disabled = true;
+  try{
+    const res = await apiCall({ action: "purchase", barcode: pu_currentProduct.barcode, qty, cost, company, remarks });
+    document.getElementById("pu_flashArea").innerHTML = `<div class="status-msg ${res.success?'ok':'err'}">${res.success?'✅ ':'❌ '}${res.message}</div>`;
+    toast(res.success ? "✅ " + res.message : "❌ " + res.message, res.success ? "success" : "error");
+    if(res.success){
+      pc_adjustStock(pu_currentProduct.barcode, qty); // instant local update
+      document.getElementById("pu_productCard").style.display = "none";
+      document.getElementById("pu_companyInput").value = "";
+      document.getElementById("pu_remarksInput").value = "";
+      pu_currentProduct = null;
+      loadProductsForPrintTab(); // background sync with server (doesn't block the scan flow)
+    }
+  }catch(err){
+    document.getElementById("pu_flashArea").innerHTML = `<div class="status-msg err">Connection error: ${err.message}</div>`;
+    toast("❌ Connection error", "error");
+  }
+  btn.disabled = false;
+}
+
+// ============================================================
+// ADD PRODUCT TAB
+// ============================================================
+function ap_recalcMrp(){
+  const cost = parseFloat(document.getElementById("ap_cost").value);
+  const markup = parseFloat(document.getElementById("ap_markup").value);
+  if(!isNaN(cost) && !isNaN(markup) && cost > 0){
+    document.getElementById("ap_mrp").value = Math.round(cost + (cost * markup / 100));
+  }
+}
+function initAddTab(){
+  on("ap_cost", "input", ap_recalcMrp);
+  on("ap_markup", "input", ap_recalcMrp);
+  on("ap_category", "change", (e) => { document.getElementById("ap_newCatBox").style.display = e.target.value === "__new__" ? "block" : "none"; });
+  on("ap_btnSubmit", "click", ap_submit);
+}
+async function loadCategoriesForAddTab(){
+  const sel = document.getElementById("ap_category");
+  try{
+    const cats = await apiCall({ action: "categories" });
+    let opts = "";
+    if(Array.isArray(cats) && cats.length > 0) opts = cats.map(c => `<option value="${c.name}">${c.name} (${c.code})</option>`).join("");
+    opts += `<option value="__new__">+ Add New Category</option>`;
+    sel.innerHTML = opts;
+  }catch(err){ sel.innerHTML = "<option value=''>Error</option>"; }
+}
+async function ap_submit(){
+  const name = document.getElementById("ap_name").value.trim();
+  let category = document.getElementById("ap_category").value;
+  const size = document.getElementById("ap_size").value.trim();
+  const mrp = document.getElementById("ap_mrp").value;
+  const cost = document.getElementById("ap_cost").value;
+  const qty = document.getElementById("ap_qty").value || 0;
+  const company = document.getElementById("ap_company").value.trim();
+  const remarks = document.getElementById("ap_remarks").value.trim();
+  const statusEl = document.getElementById("ap_status");
+  const btn = document.getElementById("ap_btnSubmit");
+
+  if(!name || !category || !mrp){ statusEl.innerHTML = '<div class="status-msg err">Item Name, Category, and MRP are required.</div>'; return; }
+  btn.disabled = true; statusEl.innerHTML = "";
+
+  if(category === "__new__"){
+    const newCatName = document.getElementById("ap_newCatName").value.trim();
+    const newCatCode = document.getElementById("ap_newCatCode").value.trim().toUpperCase();
+    if(!newCatName || !newCatCode){ statusEl.innerHTML = '<div class="status-msg err">Please fill in both the new category\'s Name and Code.</div>'; btn.disabled = false; return; }
+    try{
+      const catResult = await apiCall({ action: "addCategory", categoryName: newCatName, categoryCode: newCatCode });
+      if(!catResult.success){ statusEl.innerHTML = `<div class="status-msg err">❌ ${catResult.message}</div>`; btn.disabled = false; return; }
+      category = newCatName;
+      await loadCategoriesForAddTab();
+    }catch(err){ statusEl.innerHTML = `<div class="status-msg err">❌ Category error: ${err.message}</div>`; btn.disabled = false; return; }
+  }
+
+  try{
+    const result = await apiCall({ action: "addProduct", name, category, size, mrp, cost, qty, company, remarks });
+    if(result.success){
+      statusEl.innerHTML = `<div class="status-msg ok">✅ ${result.message}<br>Now print this product's tag from "Print Labels".</div>`;
+      toast("✅ Product Added: " + name, "success");
+      ["ap_name","ap_size","ap_mrp","ap_cost","ap_markup","ap_company","ap_remarks","ap_newCatName","ap_newCatCode"].forEach(id => document.getElementById(id).value = "");
+      document.getElementById("ap_qty").value = "0";
+      document.getElementById("ap_newCatBox").style.display = "none";
+      loadProductsForPrintTab();
+    } else {
+      statusEl.innerHTML = `<div class="status-msg err">❌ ${result.message}</div>`;
+    }
+  }catch(err){ statusEl.innerHTML = `<div class="status-msg err">❌ Connection error: ${err.message}</div>`; }
+  btn.disabled = false;
+}
+
+// ============================================================
+// PRINT LABELS TAB
+// ============================================================
+let LP_PAGE_CAPACITY = 24;
+let lp_products = [];
+let lp_queue = [];
+
+function initPrintTab(){
+  on("lp_filterCompany", "change", (e) => {
+    const company = e.target.value;
+    const matches = lp_products.map((p,i)=>({p,i})).filter(({p}) => !company || p.company === company).map(({i})=>i);
+    lp_renderOptions(matches);
+  });
+  on("lp_select", "change", lp_onProductChange);
+  document.querySelectorAll(".quick-copies button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.getElementById("lp_copies").value = btn.dataset.val;
+      document.querySelectorAll(".quick-copies button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+  document.body.classList.add("precut");
+  lp_applyAlignment();
+  ["lp_marginTop","lp_marginLeft","lp_gapCol","lp_gapRow"].forEach(id => on(id, "input", lp_applyAlignment));
+  on("lp_btnAdd", "click", lp_addToQueue);
+  on("lp_btnClear", "click", () => { lp_queue = []; lp_renderQueue(); document.getElementById("lp_labelSheet").innerHTML = ""; });
+  on("lp_btnGenerate", "click", lp_generate);
+  on("lp_btnTestGrid", "click", lp_testGrid);
+  on("lp_btnPrint", "click", () => {
+    if(document.getElementById("lp_labelSheet").children.length === 0){ document.getElementById("lp_status").textContent = "Click Generate first."; return; }
+    window.print();
+  });
+}
+async function loadProductsForPrintTab(){
+  const sel = document.getElementById("lp_select");
+  try{
+    await refreshProductCache(); // also refreshes lp_products, Product List page, Purchase History company list
+    if(!Array.isArray(lp_products) || lp_products.length === 0){ return; }
+  }catch(err){ if(sel) sel.innerHTML = "<option>Error</option>"; }
+}
+function lp_renderOptions(indices){
+  const sel = document.getElementById("lp_select");
+  if(indices.length === 0){ sel.innerHTML = "<option value=''>No matches</option>"; return; }
+  sel.innerHTML = indices.map(i => {
+    const p = lp_products[i];
+    const companyTag = p.company ? ` [${p.company}]` : "";
+    return `<option value="${i}">${p.name} ${p.size?('· '+p.size):''} — ${p.barcode} (stock: ${p.stock}, cost: ₹${p.cost})${companyTag}</option>`;
+  }).join("");
+  lp_onProductChange();
+}
+function lp_populateCompanyDropdown(){
+  const sel = document.getElementById("lp_filterCompany");
+  const companies = [...new Set(lp_products.map(p => p.company).filter(c => c))].sort();
+  sel.innerHTML = '<option value="">-- All Companies --</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join("");
+}
+function lp_onProductChange(){
+  const idx = parseInt(document.getElementById("lp_select").value);
+  const p = lp_products[idx];
+  if(p && p.stock > 0) document.getElementById("lp_copies").value = p.stock;
+  document.querySelectorAll(".quick-copies button").forEach(b => b.classList.remove("active"));
+}
+function lp_applyAlignment(){
+  const top = document.getElementById("lp_marginTop").value || 0;
+  const left = document.getElementById("lp_marginLeft").value || 0;
+  const gapCol = document.getElementById("lp_gapCol").value || 0;
+  const gapRow = document.getElementById("lp_gapRow").value || 0;
+  document.body.style.setProperty("--margin-top", top + "mm");
+  document.body.style.setProperty("--margin-left", left + "mm");
+  document.body.style.setProperty("--gap-col", gapCol + "mm");
+  document.body.style.setProperty("--gap-row", gapRow + "mm");
+}
+function lp_renderQueue(){
+  const box = document.getElementById("lp_queue");
+  const totalEl = document.getElementById("lp_total");
+  if(lp_queue.length === 0){ box.innerHTML = '<div style="font-size:12px; color:#999;">No products in the queue yet.</div>'; totalEl.textContent = ""; return; }
+  box.innerHTML = lp_queue.map((q, i) => {
+    const p = lp_products[q.productIndex];
+    return `<div class="queue-item"><span>${p.name} ${p.size?('· '+p.size):''} — <b>${q.copies}</b> copies</span>
+      <button class="btn small danger" onclick="lp_removeFromQueue(${i})">Remove</button></div>`;
+  }).join("");
+  const total = lp_queue.reduce((s,q) => s + q.copies, 0);
+  const pages = Math.ceil(total / LP_PAGE_CAPACITY);
+  totalEl.className = "queue-total" + (total > LP_PAGE_CAPACITY ? " over" : "");
+  totalEl.textContent = `Total: ${total} labels (~${pages} A4 page${pages>1?'s':''})`;
+}
+function lp_removeFromQueue(i){ lp_queue.splice(i,1); lp_renderQueue(); }
+function lp_addToQueue(){
+  const idx = parseInt(document.getElementById("lp_select").value);
+  const copies = parseInt(document.getElementById("lp_copies").value) || 1;
+  if(isNaN(idx) || !lp_products[idx]){ document.getElementById("lp_status").textContent = "Select a product first."; return; }
+  const existingIdx = lp_queue.findIndex(q => q.productIndex === idx);
+  if(existingIdx !== -1){
+    const p = lp_products[idx];
+    const merge = confirm(`"${p.name}" is already in the queue. OK = merge copies, Cancel = keep separate`);
+    if(merge) lp_queue[existingIdx].copies += copies; else lp_queue.push({ productIndex: idx, copies });
+  } else { lp_queue.push({ productIndex: idx, copies }); }
+  lp_renderQueue();
+}
+function lp_generate(){
+  if(lp_queue.length === 0){ document.getElementById("lp_status").textContent = "Add products to the queue first."; return; }
+  const sheet = document.getElementById("lp_labelSheet");
+  sheet.innerHTML = "";
+  let generated = 0, failed = 0, count = 0;
+  function addTag(p){
+    if(count > 0 && count % LP_PAGE_CAPACITY === 0){
+      const brk = document.createElement("div");
+      brk.className = "page-break";
+      brk.textContent = `Page ${Math.floor(count/LP_PAGE_CAPACITY)+1} starts here`;
+      sheet.appendChild(brk);
+    }
+    const tag = document.createElement("div");
+    tag.className = "tag";
+    tag.innerHTML = `<div class="hole"></div><div class="name">${p.name} <span class="size-part">/ Size ${p.size||"-"}</span></div>
+      <svg class="barcode"></svg><div class="code">${p.barcode}</div>
+      <div class="bottom-row"><div class="mrp">Rs.${p.mrp}</div><div class="tax">MRP incl.<br>of all taxes</div></div>`;
+    sheet.appendChild(tag);
+    try{
+      if(typeof JsBarcode === "undefined") throw new Error("Library failed to load");
+      JsBarcode(tag.querySelector("svg"), p.barcode, { format: "CODE128", height: 35, fontSize: 0, margin: 2 });
+      generated++;
+    }catch(err){ tag.querySelector("svg").outerHTML = '<div style="font-size:9px;color:#a13a2c;padding:10px 0;">Barcode error</div>'; failed++; }
+    count++;
+  }
+  lp_queue.forEach(q => { const p = lp_products[q.productIndex]; for(let i=0;i<q.copies;i++) addTag(p); });
+  document.getElementById("lp_status").innerHTML = failed > 0
+    ? `<div class="status-msg err">⚠️ ${generated} generated, ${failed} failed.</div>`
+    : `<div class="status-msg ok">✅ ${generated} label(s) ready — press "Print".</div>`;
+}
+function lp_testGrid(){
+  if(!document.body.classList.contains("precut")){ document.getElementById("lp_status").textContent = "Test Grid only works in Precut mode."; return; }
+  const sheet = document.getElementById("lp_labelSheet");
+  sheet.innerHTML = "";
+  for(let i=1; i<=24; i++){
+    const tag = document.createElement("div");
+    tag.className = "tag testgrid";
+    tag.style.alignItems = "center";
+    tag.innerHTML = `<div style="width:100%; text-align:center; font-size:11px; font-weight:700; color:#999;">Box ${i}</div>`;
+    sheet.appendChild(tag);
+  }
+  document.getElementById("lp_status").textContent = "Test grid ready — print on plain paper and match it against your sticker sheet.";
+}
+
+// ============================================================
+// DASHBOARD TAB
+// ============================================================
+function db_todayStr(){ const t = new Date(); return t.getFullYear() + "-" + String(t.getMonth()+1).padStart(2,"0") + "-" + String(t.getDate()).padStart(2,"0"); }
+function db_thisMonthStr(){ const t = new Date(); return t.getFullYear() + "-" + String(t.getMonth()+1).padStart(2,"0"); }
+
+let db_selectedPeriodTab = "today"; // today | day | month | year
+
+function initDashboard(){
+  document.getElementById("db_date").value = db_todayStr();
+  document.getElementById("db_month").value = db_thisMonthStr();
+  document.getElementById("db_year").value = new Date().getFullYear();
+
+  document.querySelectorAll("#page-dashboard .period-tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#page-dashboard .period-tab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      db_selectedPeriodTab = btn.dataset.period;
+      db_updatePickerVisibility();
+      loadDashboard();
+    });
+  });
+  on("db_btnRefresh", "click", loadDashboard);
+  on("db_date", "change", loadDashboard);
+  on("db_month", "change", loadDashboard);
+  on("db_year", "change", loadDashboard);
+  on("db_billSearch", "input", () => db_renderBills(db_recentBillsData));
+  db_updatePickerVisibility();
+  loadDashboard();
+}
+
+function db_updatePickerVisibility(){
+  const wrap = document.getElementById("db_pickerWrap");
+  const dateEl = document.getElementById("db_date");
+  const monthEl = document.getElementById("db_month");
+  const yearEl = document.getElementById("db_year");
+  const label = document.getElementById("db_pickerLabel");
+  if(db_selectedPeriodTab === "today"){
+    wrap.style.display = "none";
+  } else if(db_selectedPeriodTab === "day"){
+    wrap.style.display = "block"; label.textContent = "Date";
+    dateEl.style.display = "block"; monthEl.style.display = "none"; yearEl.style.display = "none";
+  } else if(db_selectedPeriodTab === "month"){
+    wrap.style.display = "block"; label.textContent = "Month";
+    dateEl.style.display = "none"; monthEl.style.display = "block"; yearEl.style.display = "none";
+  } else if(db_selectedPeriodTab === "year"){
+    wrap.style.display = "block"; label.textContent = "Year";
+    dateEl.style.display = "none"; monthEl.style.display = "none"; yearEl.style.display = "block";
+  }
+}
+
+async function loadDashboard(){
+  const statusEl = document.getElementById("db_status");
+  statusEl.innerHTML = '<div class="status-msg" style="background:#EFEAF5; color:#5A4E72;">Loading...</div>';
+
+  let periodType = "day", periodValue = db_todayStr(), labelText = "Today (" + db_todayStr() + ")";
+  if(db_selectedPeriodTab === "today"){
+    periodType = "day"; periodValue = db_todayStr(); labelText = "📅 Today — " + db_todayStr();
+  } else if(db_selectedPeriodTab === "day"){
+    periodValue = document.getElementById("db_date").value || db_todayStr();
+    periodType = "day"; labelText = "📅 " + periodValue;
+  } else if(db_selectedPeriodTab === "month"){
+    periodValue = document.getElementById("db_month").value || db_thisMonthStr();
+    periodType = "month"; labelText = "🗓️ Month: " + periodValue;
+  } else if(db_selectedPeriodTab === "year"){
+    periodValue = document.getElementById("db_year").value || String(new Date().getFullYear());
+    periodType = "year"; labelText = "🗓️ Year: " + periodValue;
+  }
+  document.getElementById("db_periodLabel").textContent = labelText;
+
+  try{
+    const data = await apiCall({ action: "summaryReport", periodType, periodValue });
+    document.getElementById("db_salesTotal").textContent = "₹" + data.salesTotal.toFixed(0);
+    document.getElementById("db_salesCount").textContent = `${data.salesCount} bill line(s), ${data.salesQty} units`;
+    document.getElementById("db_discount").textContent = "₹" + data.discountGiven.toFixed(0);
+    document.getElementById("db_profit").textContent = "₹" + data.grossProfit.toFixed(0);
+    document.getElementById("db_billCount").textContent = `${data.billCount} bill(s)` + (data.unbilledLines ? ` · ${data.unbilledLines} pre-upgrade line(s)` : "");
+    const avgBill = data.billCount > 0 ? (data.salesTotal / data.billCount) : 0;
+    document.getElementById("db_avgBill").textContent = "₹" + avgBill.toFixed(0);
+
+    const pmEl = document.getElementById("db_paymentBreakdown");
+    const pb = data.paymentBreakdown || {};
+    const pmKeys = ["Cash", "Online", "Both", "Unspecified"].filter(k => pb[k]);
+    if(pmKeys.length === 0){
+      pmEl.innerHTML = '<div style="font-size:12px; color:#999;">No sales in this period.</div>';
+    } else {
+      pmEl.innerHTML = pmKeys.map(k => `<div class="top-item-row"><span>${k}</span><span>₹${pb[k].toFixed(0)}</span></div>`).join("");
+    }
+
+    const topEl = document.getElementById("db_topItems");
+    if(data.topItems.length === 0){
+      topEl.innerHTML = '<div style="font-size:12px; color:#999;">No sales in this period.</div>';
+    } else {
+      topEl.innerHTML = data.topItems.map((it,i) => `<div class="top-item-row"><span><span class="rank">#${i+1}</span>${it.name}</span><span>${it.qty} units</span></div>`).join("");
+    }
+
+    db_recentBillsData = data.recentBills || [];
+    db_renderBills(db_recentBillsData);
+    statusEl.innerHTML = "";
+  }catch(err){ statusEl.innerHTML = `<div class="status-msg err">❌ Error: ${err.message}</div>`; }
+}
+
+// Recent Bills — expandable rows (tap a bill to reveal its line items) plus
+// a search box (by bill number or item name) for finding a specific sale
+// quickly instead of scrolling through every bill in the period.
+let db_recentBillsData = [];
+function db_renderBills(bills){
+  const billsEl = document.getElementById("db_bills");
+  const query = (document.getElementById("db_billSearch").value || "").trim().toLowerCase();
+
+  let filtered = bills;
+  if(query){
+    filtered = bills.filter(b =>
+      String(b.billNumber).toLowerCase().includes(query) ||
+      (b.items || []).some(it => String(it.name).toLowerCase().includes(query))
+    );
+  }
+
+  if(!filtered || filtered.length === 0){
+    billsEl.innerHTML = `<div style="font-size:12px; color:#999;">${query ? 'No bills match your search.' : 'No bills found.'}</div>`;
+    return;
+  }
+
+  billsEl.innerHTML = filtered.map((b, i) => {
+    const time = new Date(b.time);
+    const timeStr = isNaN(time) ? "" : time.toLocaleString('en-IN', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
+    const items = b.items || [];
+    const itemsHtml = items.map(it => `
+      <div class="bill-item-line"><span>${it.name} × ${it.qty}</span><span>₹${Number(it.total).toFixed(0)}</span></div>
+    `).join("") || '<div style="font-size:12px; color:#999;">No item details available.</div>';
+    return `
+      <div class="bill-row-card" data-bill-idx="${i}">
+        <div><div class="bill-no">${b.billNumber}</div><div class="bill-meta">${timeStr} · ${b.itemCount} units${b.paymentMethod ? (' · ' + b.paymentMethod) : ''}</div></div>
+        <div style="display:flex; align-items:center;">
+          <div style="text-align:right;"><div class="bill-amt">₹${b.total.toFixed(0)}</div>${b.profit !== null ? `<div class="bill-profit">Profit ₹${b.profit.toFixed(0)}</div>` : ''}</div>
+          <span class="bill-expand-arrow" id="db_arrow_${i}">▼</span>
+        </div>
+      </div>
+      <div class="bill-detail" id="db_detail_${i}">${itemsHtml}</div>
+    `;
+  }).join("");
+
+  billsEl.querySelectorAll(".bill-row-card").forEach(row => {
+    row.addEventListener("click", () => {
+      const idx = row.dataset.billIdx;
+      const detail = document.getElementById("db_detail_" + idx);
+      const arrow = document.getElementById("db_arrow_" + idx);
+      const isOpen = detail.classList.toggle("open");
+      arrow.textContent = isOpen ? "▲" : "▼";
+    });
+  });
+}
+
+// ============================================================
+// PURCHASE TAB — sub-tab switching (Restock / Add Product / History)
+// ============================================================
+function initPurchaseSubtabs(){
+  document.querySelectorAll(".subtab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const sub = btn.dataset.subtab;
+      document.querySelectorAll(".subtab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".subpage").forEach(p => p.classList.remove("active"));
+      const target = document.getElementById("subpage-" + sub);
+      if(target) target.classList.add("active");
+      if(sub === "pu-history") ph_loadHistory();
+      if(sub === "pu-dashboard") loadPurchaseDashboard();
+    });
+  });
+}
+
+// ============================================================
+// PURCHASE HISTORY SUB-TAB
+// ============================================================
+function initPurchaseHistoryTab(){
+  on("ph_btnRefresh", "click", ph_loadHistory);
+  on("ph_filterCompany", "change", ph_loadHistory);
+}
+function ph_populateCompanyDropdown(){
+  const sel = document.getElementById("ph_filterCompany");
+  if(!sel) return;
+  const current = sel.value;
+  const companies = [...new Set(PRODUCT_CACHE.map(p => p.company).filter(c => c))].sort();
+  sel.innerHTML = '<option value="">-- All Companies --</option>' + companies.map(c => `<option value="${c}">${c}</option>`).join("");
+  sel.value = current;
+}
+async function ph_loadHistory(){
+  const listEl = document.getElementById("ph_list");
+  if(!listEl) return;
+  listEl.innerHTML = '<div class="status-msg" style="background:#EFEAF5; color:#5A4E72;">Loading...</div>';
+  const company = document.getElementById("ph_filterCompany").value;
+  try{
+    const rows = await apiCall({ action: "purchaseHistory", limit: 100, company });
+    if(!Array.isArray(rows) || rows.length === 0){
+      listEl.innerHTML = '<div class="card"><div style="text-align:center; color:var(--text-mid); font-size:13px;">No purchase records found.</div></div>';
+      return;
+    }
+    listEl.innerHTML = rows.map(r => {
+      const t = new Date(r.timestamp);
+      const timeStr = isNaN(t) ? "" : t.toLocaleString('en-IN', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+      return `<div class="bill-row-card">
+        <div><div class="bill-item-name" style="font-size:13px;">${r.name}</div>
+          <div class="bill-meta">${timeStr}${r.company ? (' · ' + r.company) : ''}${r.remarks ? (' · ' + r.remarks) : ''}</div></div>
+        <div class="bill-amt">${r.qty} × ₹${r.cost}<br><span style="font-weight:800;">₹${r.total}</span></div>
+      </div>`;
+    }).join("");
+  }catch(err){ listEl.innerHTML = `<div class="status-msg err">❌ Error: ${err.message}</div>`; }
+}
+
+// ============================================================
+// PURCHASE DASHBOARD SUB-TAB — purchase-only KPIs, kept separate from the
+// Sales Dashboard (which now shows sales KPIs only).
+// ============================================================
+let pd_selectedPeriodTab = "today"; // today | day | month | year
+
+function initPurchaseDashboard(){
+  document.getElementById("pd_date").value = db_todayStr();
+  document.getElementById("pd_month").value = db_thisMonthStr();
+  document.getElementById("pd_year").value = new Date().getFullYear();
+
+  document.querySelectorAll("#subpage-pu-dashboard .period-tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#subpage-pu-dashboard .period-tab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      pd_selectedPeriodTab = btn.dataset.period;
+      pd_updatePickerVisibility();
+      loadPurchaseDashboard();
+    });
+  });
+  on("pd_btnRefresh", "click", loadPurchaseDashboard);
+  on("pd_date", "change", loadPurchaseDashboard);
+  on("pd_month", "change", loadPurchaseDashboard);
+  on("pd_year", "change", loadPurchaseDashboard);
+  pd_updatePickerVisibility();
+}
+function pd_updatePickerVisibility(){
+  const wrap = document.getElementById("pd_pickerWrap");
+  const dateEl = document.getElementById("pd_date");
+  const monthEl = document.getElementById("pd_month");
+  const yearEl = document.getElementById("pd_year");
+  const label = document.getElementById("pd_pickerLabel");
+  if(pd_selectedPeriodTab === "today"){
+    wrap.style.display = "none";
+  } else if(pd_selectedPeriodTab === "day"){
+    wrap.style.display = "block"; label.textContent = "Date";
+    dateEl.style.display = "block"; monthEl.style.display = "none"; yearEl.style.display = "none";
+  } else if(pd_selectedPeriodTab === "month"){
+    wrap.style.display = "block"; label.textContent = "Month";
+    dateEl.style.display = "none"; monthEl.style.display = "block"; yearEl.style.display = "none";
+  } else if(pd_selectedPeriodTab === "year"){
+    wrap.style.display = "block"; label.textContent = "Year";
+    dateEl.style.display = "none"; monthEl.style.display = "none"; yearEl.style.display = "block";
+  }
+}
+async function loadPurchaseDashboard(){
+  const statusEl = document.getElementById("pd_status");
+  statusEl.innerHTML = '<div class="status-msg" style="background:#EFEAF5; color:#5A4E72;">Loading...</div>';
+
+  let periodType = "day", periodValue = db_todayStr(), labelText = "Today — " + db_todayStr();
+  if(pd_selectedPeriodTab === "today"){
+    periodType = "day"; periodValue = db_todayStr(); labelText = "📅 Today — " + db_todayStr();
+  } else if(pd_selectedPeriodTab === "day"){
+    periodValue = document.getElementById("pd_date").value || db_todayStr();
+    periodType = "day"; labelText = "📅 " + periodValue;
+  } else if(pd_selectedPeriodTab === "month"){
+    periodValue = document.getElementById("pd_month").value || db_thisMonthStr();
+    periodType = "month"; labelText = "🗓️ Month: " + periodValue;
+  } else if(pd_selectedPeriodTab === "year"){
+    periodValue = document.getElementById("pd_year").value || String(new Date().getFullYear());
+    periodType = "year"; labelText = "🗓️ Year: " + periodValue;
+  }
+  document.getElementById("pd_periodLabel").textContent = labelText;
+
+  try{
+    const data = await apiCall({ action: "summaryReport", periodType, periodValue });
+    document.getElementById("pd_purchaseTotal").textContent = "₹" + data.purchaseTotal.toFixed(0);
+    document.getElementById("pd_purchaseCount").textContent = `${data.purchaseCount} entries`;
+    const avg = data.purchaseCount > 0 ? (data.purchaseTotal / data.purchaseCount) : 0;
+    document.getElementById("pd_avgPurchase").textContent = "₹" + avg.toFixed(0);
+
+    const topEl = document.getElementById("pd_topItems");
+    if(!data.topPurchasedItems || data.topPurchasedItems.length === 0){
+      topEl.innerHTML = '<div style="font-size:12px; color:#999;">No purchases in this period.</div>';
+    } else {
+      topEl.innerHTML = data.topPurchasedItems.map((it,i) => `<div class="top-item-row"><span><span class="rank">#${i+1}</span>${it.name}</span><span>${it.qty} units</span></div>`).join("");
+    }
+    statusEl.innerHTML = "";
+  }catch(err){ statusEl.innerHTML = `<div class="status-msg err">❌ Error: ${err.message}</div>`; }
+}
+
+// ============================================================
+// PRODUCT LIST PAGE (via More menu)
+// ============================================================
+function initProductListTab(){
+  on("pl_search", "input", pl_render);
+  on("pl_filterCategory", "change", pl_render);
+  on("pl_btnRefresh", "click", () => refreshProductCache());
+}
+function pl_populateCategoryDropdown(){
+  const sel = document.getElementById("pl_filterCategory");
+  if(!sel) return;
+  const current = sel.value;
+  const cats = [...new Set(PRODUCT_CACHE.map(p => p.category).filter(c => c))].sort();
+  sel.innerHTML = '<option value="">-- All --</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join("");
+  sel.value = current;
+}
+const LOW_STOCK_THRESHOLD = 3;
+function pl_render(){
+  const listEl = document.getElementById("pl_list");
+  const summaryEl = document.getElementById("pl_summary");
+  if(!listEl) return;
+  pl_populateCategoryDropdown();
+
+  const q = (document.getElementById("pl_search").value || "").trim().toLowerCase();
+  const cat = document.getElementById("pl_filterCategory").value;
+  const filtered = PRODUCT_CACHE.filter(p => {
+    if(cat && p.category !== cat) return false;
+    if(!q) return true;
+    return String(p.name).toLowerCase().includes(q) || String(p.barcode).toLowerCase().includes(q) || String(p.category).toLowerCase().includes(q);
+  });
+
+  const totalStockValue = filtered.reduce((s,p) => s + (Number(p.stockValue) || (Number(p.stock)||0)*(Number(p.cost)||0)), 0);
+  summaryEl.textContent = `${filtered.length} product(s) · Total Stock Value: ₹${totalStockValue.toFixed(0)}`;
+
+  if(filtered.length === 0){
+    listEl.innerHTML = '<div class="card"><div style="text-align:center; color:var(--text-mid); font-size:13px;">No products found.</div></div>';
+    return;
+  }
+  listEl.innerHTML = filtered.map(p => {
+    const low = Number(p.stock) <= LOW_STOCK_THRESHOLD;
+    return `<div class="product-row ${low ? 'low-stock' : ''}">
+      <div>
+        <div class="product-row-name">${p.name}${p.size ? (' · ' + p.size) : ''}</div>
+        <div class="product-row-meta">${p.category || ''} &nbsp;|&nbsp; ${p.barcode}<br>MRP ₹${p.mrp} &nbsp;|&nbsp; Cost ₹${p.cost}${p.company ? (' &nbsp;|&nbsp; ' + p.company) : ''}</div>
+      </div>
+      <div class="product-row-right">
+        <div class="product-row-stock ${low ? 'low' : ''}">${p.stock}</div>
+        <div class="stock-badge ${low ? 'low' : ''}">${low ? 'Low Stock' : 'In Stock'}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+</script>
+</body>
+</html>
