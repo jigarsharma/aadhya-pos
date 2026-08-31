@@ -1025,6 +1025,7 @@ function sc_renderBill(){
   if(sc_bill.length === 0){
     listEl.innerHTML = '<div class="bill-empty"><span class="big-emoji">🛒</span>Cart is empty — scan or search to add items</div>';
     discountBox.style.display = "none";
+    updateCartBar();
     return;
   }
 
