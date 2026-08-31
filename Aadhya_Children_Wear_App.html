@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Aadhya Children Wear App</title>
+
+<!-- PWA: lets the app be installed to the home screen with its own icon -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7A6A9C">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aadhya POS">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://unpkg.com/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -695,6 +706,14 @@
         <label class="switch"><input type="checkbox" id="st_quickadd" checked><span class="slider"></span></label>
       </div>
     </div>
+    <div class="card" id="st_installCard" style="display:none;">
+      <label style="margin-top:0;">📲 Install App</label>
+      <p style="font-size:12px; color:var(--text-mid); margin:2px 0 10px;">Install this on your home screen so it opens like a regular app — full screen, its own icon, no browser address bar.</p>
+      <button class="btn" id="st_btnInstall" style="width:100%;">📲 Install to Home Screen</button>
+    </div>
+    <div class="card" id="st_installedNotice" style="display:none;">
+      <div style="text-align:center; font-size:13px; color:var(--seal-green); font-weight:700;">✅ Running as an installed app</div>
+    </div>
     <div class="card">
       <label style="margin-top:0;">App Info</label>
       <div style="font-size:12px; color:var(--text-mid); line-height:1.7;">
@@ -799,7 +818,7 @@ window.addEventListener("error", function(e){
 // ============================================================
 // EK BAAR YAHAN APNA APPS SCRIPT WEB APP URL PASTE KARO
 // ============================================================
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwdfD2hdCzmfQxl0ceSwVdFv3TOJ8g4N4B5w0oMX07ZzfoAASxVNz8zvXuY35QaxbX3wA/exec";
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw6L4zRLA-3RiTgGLhpwIM0bZyEf4yq_VNl1AZWid4SUo5WNf2H-DsefMuvIQJb0uuA9g/exec";
 
 function toast(msg, type){
   const el = document.createElement("div");
@@ -914,6 +933,60 @@ function initSettingsTab(){
   on("st_sound", "change", (e) => { settings.sound = e.target.checked; saveSettings(); });
   on("st_vibrate", "change", (e) => { settings.vibrate = e.target.checked; saveSettings(); });
   on("st_quickadd", "change", (e) => { settings.quickAdd = e.target.checked; saveSettings(); refreshQuickAddBanner(); });
+  initInstallPrompt();
+}
+
+// ============================================================
+// PWA INSTALL — lets the shop add this to the home screen like a real app.
+// ============================================================
+let pwa_deferredPrompt = null;
+
+function pwa_isStandalone(){
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function initInstallPrompt(){
+  if(pwa_isStandalone()){
+    document.getElementById("st_installedNotice").style.display = "block";
+    return;
+  }
+  // Android/Chrome: the browser fires this event when the app is installable;
+  // we intercept it so we can trigger the native install prompt from our
+  // own button instead of waiting for the browser's mini-infobar.
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    pwa_deferredPrompt = e;
+    document.getElementById("st_installCard").style.display = "block";
+  });
+  on("st_btnInstall", "click", async () => {
+    if(!pwa_deferredPrompt){
+      // iOS Safari (and some browsers) never fire beforeinstallprompt —
+      // there's no programmatic install there, so guide the shop manually.
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      if(isIOS){
+        toast("On iPhone: tap the Share icon, then 'Add to Home Screen'.", "success");
+      } else {
+        toast("Your browser doesn't support one-tap install here — use its menu → 'Add to Home Screen' or 'Install App'.", "error");
+      }
+      return;
+    }
+    pwa_deferredPrompt.prompt();
+    const choice = await pwa_deferredPrompt.userChoice;
+    if(choice.outcome === "accepted") toast("✅ App installed!", "success");
+    pwa_deferredPrompt = null;
+    document.getElementById("st_installCard").style.display = "none";
+  });
+  // iOS never fires beforeinstallprompt, so proactively show the card there
+  // with manual instructions rather than leaving it permanently hidden.
+  if(/iphone|ipad|ipod/i.test(navigator.userAgent)){
+    document.getElementById("st_installCard").style.display = "block";
+  }
+}
+
+function registerServiceWorker(){
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.register("sw.js").catch((err) => console.warn("Service worker registration failed:", err.message));
+  }
 }
 function refreshQuickAddBanner(){
   const banner = document.getElementById("sc_quickAddBanner");
@@ -966,6 +1039,7 @@ function initNav(){
 function init(){
   loadSettings();
   warmUp();
+  registerServiceWorker();
   try{ initNav(); }catch(e){ console.error(e); }
   try{ initSettingsTab(); }catch(e){ console.error(e); }
   try{ initSalesTab(); }catch(e){ console.error("Sales tab init error", e); toast("⚠️ Sales tab init error: " + e.message, "error"); }
