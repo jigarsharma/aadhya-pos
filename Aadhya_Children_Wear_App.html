@@ -818,7 +818,7 @@ window.addEventListener("error", function(e){
 // ============================================================
 // EK BAAR YAHAN APNA APPS SCRIPT WEB APP URL PASTE KARO
 // ============================================================
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw6L4zRLA-3RiTgGLhpwIM0bZyEf4yq_VNl1AZWid4SUo5WNf2H-DsefMuvIQJb0uuA9g/exec";
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwdfD2hdCzmfQxl0ceSwVdFv3TOJ8g4N4B5w0oMX07ZzfoAASxVNz8zvXuY35QaxbX3wA/exec";
 
 function toast(msg, type){
   const el = document.createElement("div");
@@ -1834,6 +1834,9 @@ async function loadDashboard(){
 
   try{
     const data = await apiCall({ action: "summaryReport", periodType, periodValue });
+    if(data.success === false || typeof data.salesTotal !== "number"){
+      throw new Error(data.message || "The backend didn't return the expected data — your Apps Script (Code.gs) may need to be updated and redeployed with the latest version.");
+    }
     document.getElementById("db_salesTotal").textContent = "₹" + data.salesTotal.toFixed(0);
     document.getElementById("db_salesCount").textContent = `${data.salesCount} bill line(s), ${data.salesQty} units`;
     document.getElementById("db_discount").textContent = "₹" + data.discountGiven.toFixed(0);
@@ -2037,6 +2040,9 @@ async function loadPurchaseDashboard(){
 
   try{
     const data = await apiCall({ action: "summaryReport", periodType, periodValue });
+    if(data.success === false || typeof data.purchaseTotal !== "number"){
+      throw new Error(data.message || "The backend didn't return the expected data — your Apps Script (Code.gs) may need to be updated and redeployed with the latest version.");
+    }
     document.getElementById("pd_purchaseTotal").textContent = "₹" + data.purchaseTotal.toFixed(0);
     document.getElementById("pd_purchaseCount").textContent = `${data.purchaseCount} entries`;
     const avg = data.purchaseCount > 0 ? (data.purchaseTotal / data.purchaseCount) : 0;
