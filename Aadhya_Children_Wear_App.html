@@ -238,6 +238,13 @@
 
   /* ============ DASHBOARD ============ */
   .dash-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+  .spinner{
+    width:14px; height:14px; border:2px solid rgba(122,106,156,0.25); border-top-color:var(--ink);
+    border-radius:50%; display:inline-block; vertical-align:middle; margin-right:8px;
+    animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .period-tab:disabled, .btn.secondary:disabled{opacity:0.5; cursor:not-allowed;}
   .dash-card{border-radius:16px; padding:16px; color:#fff;}
   .dash-pink{background:linear-gradient(135deg, #F5A6C2, #F8C6D8);}
   .dash-teal{background:linear-gradient(135deg, #7FD9C4, #A6E8D6);}
@@ -294,6 +301,22 @@
   .bill-detail.open{display:block;}
   .bill-detail .bill-item-line{display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-bottom:1px dotted var(--line);}
   .bill-detail .bill-item-line:last-child{border-bottom:none;}
+
+  /* ============ INVOICE DEEP-DIVE (enriched line items) ============ */
+  .invoice-line{padding:8px 0; border-bottom:1px dotted var(--line); font-size:12px;}
+  .invoice-line:last-child{border-bottom:none;}
+  .invoice-line-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .invoice-line-name{font-weight:700; font-size:13px; color:var(--ink);}
+  .invoice-line-barcode{font-family:'Courier New',monospace; font-size:10.5px; color:var(--text-mid); margin-top:1px;}
+  .invoice-line-total{font-weight:800; font-size:13.5px; text-align:right; white-space:nowrap;}
+  .invoice-line-badges{display:flex; gap:10px; flex-wrap:wrap; margin-top:5px; font-size:11px; color:var(--text-mid);}
+  .invoice-line-badges b{color:var(--text-dark);}
+  .invoice-line-badges .il-profit{color:var(--seal-green); font-weight:700;}
+  .invoice-line-badges .il-discount{color:var(--stamp-red); font-weight:700;}
+  .btn-view-invoice{
+    width:100%; margin-top:8px; padding:9px; border-radius:10px; border:1.5px solid var(--ink);
+    background:#fff; color:var(--ink); font-weight:700; font-size:12.5px; cursor:pointer;
+  }
 
   /* ============ PRODUCT LIST ============ */
   .product-row{
@@ -802,6 +825,34 @@
   </div>
 </div>
 
+<!-- ===================== VIEW INVOICE (deep-dive from Recent Bills) ===================== -->
+<div class="overlay" id="invoiceViewOverlay">
+  <div class="overlay-header">
+    <button class="btn-icon" id="btnCloseInvoiceView">✕</button>
+    <h2>Invoice</h2>
+  </div>
+  <div class="overlay-body">
+    <div class="card">
+      <div class="bill-no" style="font-size:16px;" id="iv_billNumber"></div>
+      <div style="font-size:12px; color:var(--text-mid); margin-top:3px;" id="iv_meta"></div>
+    </div>
+    <div class="card">
+      <label style="margin-top:0;">Items</label>
+      <div id="iv_itemList" style="margin-top:8px;"></div>
+    </div>
+    <div class="card">
+      <div class="bill-row"><span>Subtotal (MRP)</span><span id="iv_subtotal">₹0</span></div>
+      <div class="bill-row"><span>Discount Given</span><span id="iv_discount">₹0</span></div>
+      <div class="receipt-total"><span>Grand Total</span><span id="iv_grandTotal">₹0</span></div>
+      <div class="bill-row" style="margin-top:10px; border-top:1px dotted var(--line); padding-top:10px;"><span>Total Cost</span><span id="iv_totalCost">₹0</span></div>
+      <div class="bill-row"><span><b>Total Profit</b></span><span id="iv_totalProfit"><b>₹0</b></span></div>
+    </div>
+  </div>
+  <div class="overlay-footer">
+    <button class="btn" id="btnInvoiceViewDone" style="width:100%;">Close</button>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // GLOBAL SAFETY NET — one broken handler never silently kills every button.
@@ -818,7 +869,7 @@ window.addEventListener("error", function(e){
 // ============================================================
 // EK BAAR YAHAN APNA APPS SCRIPT WEB APP URL PASTE KARO
 // ============================================================
-const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwdfD2hdCzmfQxl0ceSwVdFv3TOJ8g4N4B5w0oMX07ZzfoAASxVNz8zvXuY35QaxbX3wA/exec";
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwgND9DfoiBiqSGkC1kgd2oYwXdjpxDzb94iEzROCwB2_vGstk9LdodqiGJuAUOHDqZ3A/exec";
 
 function toast(msg, type){
   const el = document.createElement("div");
@@ -1201,6 +1252,8 @@ function initCartOverlay(){
   on("sc_btnCompleteBill", "click", sc_completeBill);
   on("btnCloseBillConfirm", "click", closeBillConfirmOverlay);
   on("btnBillConfirmDone", "click", closeBillConfirmOverlay);
+  on("btnCloseInvoiceView", "click", closeInvoiceViewOverlay);
+  on("btnInvoiceViewDone", "click", closeInvoiceViewOverlay);
 }
 function closeBillConfirmOverlay(){ document.getElementById("billConfirmOverlay").classList.remove("active"); }
 function openCartOverlay(){ sc_renderBill(); document.getElementById("cartOverlay").classList.add("active"); }
@@ -1813,9 +1866,23 @@ function db_updatePickerVisibility(){
   }
 }
 
+// Toggles a spinner + disables the period tabs/refresh button while a
+// dashboard report is in flight — makes it obvious something is happening
+// instead of the screen just sitting there, and stops impatient repeat-taps
+// from firing off multiple overlapping slow requests at once.
+function db_setLoadingState(scopeId, statusElId, loading, loadingText){
+  const scope = document.getElementById(scopeId);
+  const statusEl = document.getElementById(statusElId);
+  if(scope){
+    scope.querySelectorAll(".period-tab, .btn.secondary").forEach(el => { el.disabled = loading; });
+  }
+  if(loading && statusEl){
+    statusEl.innerHTML = `<div class="status-msg" style="background:#EFEAF5; color:#5A4E72;"><span class="spinner"></span>${loadingText || 'Loading...'}</div>`;
+  }
+}
+
 async function loadDashboard(){
-  const statusEl = document.getElementById("db_status");
-  statusEl.innerHTML = '<div class="status-msg" style="background:#EFEAF5; color:#5A4E72;">Loading...</div>';
+  db_setLoadingState("page-dashboard", "db_status", true, "Loading dashboard data...");
 
   let periodType = "day", periodValue = db_todayStr(), labelText = "Today (" + db_todayStr() + ")";
   if(db_selectedPeriodTab === "today"){
@@ -1832,6 +1899,7 @@ async function loadDashboard(){
   }
   document.getElementById("db_periodLabel").textContent = labelText;
 
+  const statusEl = document.getElementById("db_status");
   try{
     const data = await apiCall({ action: "summaryReport", periodType, periodValue });
     if(data.success === false || typeof data.salesTotal !== "number"){
@@ -1865,12 +1933,36 @@ async function loadDashboard(){
     db_renderBills(db_recentBillsData);
     statusEl.innerHTML = "";
   }catch(err){ statusEl.innerHTML = `<div class="status-msg err">❌ Error: ${err.message}</div>`; }
+  finally{ db_setLoadingState("page-dashboard", "db_status", false); }
 }
 
 // Recent Bills — expandable rows (tap a bill to reveal its line items) plus
 // a search box (by bill number or item name) for finding a specific sale
 // quickly instead of scrolling through every bill in the period.
 let db_recentBillsData = [];
+// Renders one enriched line item — barcode, qty, cost, discount, profit —
+// used both in the Recent Bills inline expand and the full Invoice view.
+function db_renderInvoiceLine(it){
+  const costStr = it.cost !== null && it.cost !== undefined ? `₹${Number(it.cost).toFixed(0)}` : "—";
+  const profitStr = it.profit !== null && it.profit !== undefined ? `₹${Number(it.profit).toFixed(0)}` : "—";
+  return `
+    <div class="invoice-line">
+      <div class="invoice-line-top">
+        <div>
+          <div class="invoice-line-name">${it.name} × ${it.qty}</div>
+          <div class="invoice-line-barcode">${it.barcode || ''}</div>
+        </div>
+        <div class="invoice-line-total">₹${Number(it.total).toFixed(0)}</div>
+      </div>
+      <div class="invoice-line-badges">
+        <span>Rate: <b>₹${Number(it.rate).toFixed(0)}</b></span>
+        <span>Cost: <b>${costStr}</b></span>
+        ${it.discount > 0 ? `<span class="il-discount">Discount: ₹${Number(it.discount).toFixed(0)}</span>` : ''}
+        <span class="il-profit">Profit: ${profitStr}</span>
+      </div>
+    </div>`;
+}
+
 function db_renderBills(bills){
   const billsEl = document.getElementById("db_bills");
   const query = (document.getElementById("db_billSearch").value || "").trim().toLowerCase();
@@ -1879,7 +1971,7 @@ function db_renderBills(bills){
   if(query){
     filtered = bills.filter(b =>
       String(b.billNumber).toLowerCase().includes(query) ||
-      (b.items || []).some(it => String(it.name).toLowerCase().includes(query))
+      (b.items || []).some(it => String(it.name).toLowerCase().includes(query) || String(it.barcode).toLowerCase().includes(query))
     );
   }
 
@@ -1892,9 +1984,7 @@ function db_renderBills(bills){
     const time = new Date(b.time);
     const timeStr = isNaN(time) ? "" : time.toLocaleString('en-IN', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
     const items = b.items || [];
-    const itemsHtml = items.map(it => `
-      <div class="bill-item-line"><span>${it.name} × ${it.qty}</span><span>₹${Number(it.total).toFixed(0)}</span></div>
-    `).join("") || '<div style="font-size:12px; color:#999;">No item details available.</div>';
+    const itemsHtml = items.map(db_renderInvoiceLine).join("") || '<div style="font-size:12px; color:#999;">No item details available.</div>';
     return `
       <div class="bill-row-card" data-bill-idx="${i}">
         <div><div class="bill-no">${b.billNumber}</div><div class="bill-meta">${timeStr} · ${b.itemCount} units${b.paymentMethod ? (' · ' + b.paymentMethod) : ''}</div></div>
@@ -1903,7 +1993,7 @@ function db_renderBills(bills){
           <span class="bill-expand-arrow" id="db_arrow_${i}">▼</span>
         </div>
       </div>
-      <div class="bill-detail" id="db_detail_${i}">${itemsHtml}</div>
+      <div class="bill-detail" id="db_detail_${i}">${itemsHtml}<button type="button" class="btn-view-invoice" data-invoice-idx="${i}">🧾 View Full Invoice</button></div>
     `;
   }).join("");
 
@@ -1916,7 +2006,38 @@ function db_renderBills(bills){
       arrow.textContent = isOpen ? "▲" : "▼";
     });
   });
+  billsEl.querySelectorAll(".btn-view-invoice").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation(); // don't also toggle the row's expand/collapse
+      db_openInvoice(filtered[parseInt(btn.dataset.invoiceIdx)]);
+    });
+  });
 }
+
+// ============================================================
+// VIEW INVOICE — full deep-dive for one bill (barcode/cost/discount/profit
+// per item, plus bill-level totals), opened from Recent Bills.
+// ============================================================
+function db_openInvoice(bill){
+  if(!bill) return;
+  const time = new Date(bill.time);
+  const timeStr = isNaN(time) ? "" : time.toLocaleString('en-IN', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+  const items = bill.items || [];
+
+  document.getElementById("iv_billNumber").textContent = bill.billNumber;
+  document.getElementById("iv_meta").textContent = `${timeStr} · ${bill.paymentMethod || 'Unspecified'} · ${bill.itemCount} units`;
+  document.getElementById("iv_itemList").innerHTML = items.map(db_renderInvoiceLine).join("") || '<div style="font-size:12px; color:#999;">No item details available.</div>';
+
+  const subtotal = items.reduce((s, it) => s + (Number(it.mrp) || 0) * it.qty, 0);
+  document.getElementById("iv_subtotal").textContent = "₹" + subtotal.toFixed(0);
+  document.getElementById("iv_discount").textContent = "₹" + (bill.totalDiscount || 0).toFixed(0);
+  document.getElementById("iv_grandTotal").textContent = "₹" + bill.total.toFixed(0);
+  document.getElementById("iv_totalCost").textContent = bill.totalCost !== null ? "₹" + bill.totalCost.toFixed(0) : "—";
+  document.getElementById("iv_totalProfit").innerHTML = bill.profit !== null ? `<b>₹${bill.profit.toFixed(0)}</b>` : "<b>—</b>";
+
+  document.getElementById("invoiceViewOverlay").classList.add("active");
+}
+function closeInvoiceViewOverlay(){ document.getElementById("invoiceViewOverlay").classList.remove("active"); }
 
 // ============================================================
 // PURCHASE TAB — sub-tab switching (Restock / Add Product / History)
@@ -2020,8 +2141,7 @@ function pd_updatePickerVisibility(){
   }
 }
 async function loadPurchaseDashboard(){
-  const statusEl = document.getElementById("pd_status");
-  statusEl.innerHTML = '<div class="status-msg" style="background:#EFEAF5; color:#5A4E72;">Loading...</div>';
+  db_setLoadingState("subpage-pu-dashboard", "pd_status", true, "Loading purchase data...");
 
   let periodType = "day", periodValue = db_todayStr(), labelText = "Today — " + db_todayStr();
   if(pd_selectedPeriodTab === "today"){
@@ -2038,6 +2158,7 @@ async function loadPurchaseDashboard(){
   }
   document.getElementById("pd_periodLabel").textContent = labelText;
 
+  const statusEl = document.getElementById("pd_status");
   try{
     const data = await apiCall({ action: "summaryReport", periodType, periodValue });
     if(data.success === false || typeof data.purchaseTotal !== "number"){
@@ -2056,6 +2177,7 @@ async function loadPurchaseDashboard(){
     }
     statusEl.innerHTML = "";
   }catch(err){ statusEl.innerHTML = `<div class="status-msg err">❌ Error: ${err.message}</div>`; }
+  finally{ db_setLoadingState("subpage-pu-dashboard", "pd_status", false); }
 }
 
 // ============================================================
